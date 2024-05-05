@@ -1,6 +1,6 @@
 # Code of conduct
 
-All projects under *https:<!--disable autolink-->//github.com/dtolnay* adopt the
+All projects under *https:<!--disable autolink-->//github.com/valeratrades* adopt the
 **[Rust Code of Conduct]**. Everyone is held to the same standard of conduct
 when interacting in these repositories as if they were rust-lang repositories.
 
@@ -8,7 +8,7 @@ when interacting in these repositories as if they were rust-lang repositories.
 
 ## Enforcement
 
-Please contact David Tolnay at *dtolnay<!--disable autolink-->@gmail.com* to
+Please contact Valera Sakharov at *valeratrades<!--disable autolink-->@gmail.com* to
 call attention to code of conduct violations.
 
 Note that while we elect to follow the Rust Code of Conduct, this is not an
