@@ -4,7 +4,8 @@ There are many possible ways to get some code into the main branch. Pick one, an
 
 - If the repository is shared, what is the naming convention for branches? I prefix mine with matklad/.
 
-- You use #link("https://graydon2.dreamwidth.org/1597.html")[_not rocket-science rule (NRSR)_].
+- You use
+[_not rocket-science rule (NRSR)_](<https://graydon2.dreamwidth.org/1597.html>)
 
 - Who should do code review of a particular PR? A single person, to avoid bystander effect and to reduce notification fatigue. The reviewer is picked by the author of PR, as that’s a stable equilibrium in a high-trust team and cuts red tape.
 

@@ -10,7 +10,8 @@ Second, a build system is developer UI. To do almost anything, you need to type 
 
 One anti-pattern here is when the build system spills over to CI. When, to figure out what the set of checks even is, you need to read .github/workflows/\*.yml to compile a list of commands. That’s accidental complexity! Sprawling yamls are a bad entry point. Put all the logic into the build system and let the CI drive that, and not vice verse.
 
-#link("https://matklad.github.io/2023/12/31/O(1)-build-file.html")[There is a stronger version of the advice]. No matter the size of the project, there’s probably only a handful of workflows that make sense for it: testing, running, releasing, etc. This small set of workflows should be nailed from the start, and specific commands should be documented. When the project subsequently grows in volumes, this set of build-system entry points should not grow.
+[There is a stronger version of the advice](<https://matklad.github.io/2023/12/31/O(1)-build-file.html>)
+. No matter the size of the project, there’s probably only a handful of workflows that make sense for it: testing, running, releasing, etc. This small set of workflows should be nailed from the start, and specific commands should be documented. When the project subsequently grows in volumes, this set of build-system entry points should not grow.
 
 If you add a Frobnicator, makebelieve test invocation should test that Frobnicator works. If instead you need a dedicated makebelieve test-frobnicator and the corresponding line in some CI yaml, you are on a perilous path.
 
