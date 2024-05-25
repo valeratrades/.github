@@ -17,6 +17,7 @@ Currently everything is simply stolen from following sources:
 - [sabrina](<https://sabrinajewson.org/>)
 - [nilstriebs](<https://blog.nilstrieb.dev/>)
 - [alice ryhl](<https://ryhl.io/>)
+- [blaz](<https://blaz.is/blog/>)
 
 And possibly textbooks https://teachyourselfcs.com/, https://sourceacademy.org/sicpjs/index and so on
 
