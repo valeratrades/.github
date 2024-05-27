@@ -18,6 +18,7 @@ Currently everything is simply stolen from following sources:
 - [nilstriebs](<https://blog.nilstrieb.dev/>)
 - [alice ryhl](<https://ryhl.io/>)
 - [blaz](<https://blaz.is/blog/>)
+- [vorpus](<https://vorpus.org/blog/archives.html>)
 
 And possibly textbooks https://teachyourselfcs.com/, https://sourceacademy.org/sicpjs/index and so on
 
