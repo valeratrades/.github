@@ -19,6 +19,7 @@ Currently everything is simply stolen from following sources:
 - [alice ryhl](<https://ryhl.io/>)
 - [blaz](<https://blaz.is/blog/>)
 - [vorpus](<https://vorpus.org/blog/archives.html>) with [go, async and goto](<https://vorpus.org/blog/notes-on-structured-concurrency-or-go-statement-considered-harmful/>) and [trio](<https://github.com/python-trio/trio>)
+- [yoshua](<https://blog.yoshuawuyts.com/>)
 
 And possibly textbooks https://teachyourselfcs.com/, https://sourceacademy.org/sicpjs/index and so on
 
