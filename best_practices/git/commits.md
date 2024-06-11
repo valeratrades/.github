@@ -1,3 +1,17 @@
+# General
+Follow the conventional commits (aka the Angular convention).  
+More specifically, as described in [conventional_commit_messages.md].  
+Below are notable tips and caveats:
+
+- Imperative, as if you are [giving orders to the codebase][SubmittingPatches]
+- Present tense ("add", not "added")
+- Do NOT capitalize the first letter
+- Do NOT add period `.` at the end
+
+[conventional_commit_messages.md]: <https://gist.github.com/qoomon/5dfcdf8eec66a051ecd85625518cfd13>
+[SubmittingPatches]: <https://git.kernel.org/pub/scm/git/git.git/tree/Documentation/SubmittingPatches?h=v2.36.1#n181>
+
+
 
 ## Prefixes
 Adopted commit prefixes in my repositories are as follows:
