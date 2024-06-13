@@ -14,7 +14,7 @@ Currently everything is simply stolen from following sources:
 - [manishearth](<https://manishearth.github.io/>)
 - [bubblebox](<https://www.ralfj.de/blog/2024/04/14/bubblebox.html>)
 - [tavinari](<https://tavianator.com/2024/btrfs_bug.html>)
-- [sabrina](<https://sabrinajewson.org/>)
+- [sabrina](<https://sabrinajewson.org/>) with [async-drop](<https://sabrinajewson.org/blog/async-drop>)
 - [nilstriebs](<https://blog.nilstrieb.dev/>)
 - [alice ryhl](<https://ryhl.io/>)
 - [blaz](<https://blaz.is/blog/>)
