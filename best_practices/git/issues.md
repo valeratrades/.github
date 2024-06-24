@@ -1,0 +1,1 @@
+Every issue is by default `-l enhancement`, as the discussions should be held in the `discussions` session. Thus the label is redundant and is not available (TODO) in my projects, as it is auto-deleted on creation of the repo.
