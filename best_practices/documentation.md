@@ -8,5 +8,5 @@
 Describes social architecture and [processes](<https://matklad.github.io/2024/03/22/basic-things.html#Process-Docs>)
 Links to project-specific [STYLE.md](<https://matklad.github.io/2024/03/22/basic-things.html#Style>)
 
-### README.md
+## README.md
 - short one-page [README.md](<https://matklad.github.io/2024/03/22/basic-things.html#READMEs>) that is mostly links to more topical documentation. The two most important links are the user docs and the [dev docs](#docs)
