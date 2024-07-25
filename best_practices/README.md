@@ -22,6 +22,7 @@ Currently everything is simply stolen from following sources:
 - [yoshua](<https://blog.yoshuawuyts.com/>)
 - [tmandry](<https://tmandry.gitlab.io/blog>)
 - [Jane Street](<https://blog.janestreet.com/>)
+- [LWN](<https://lwn.net/>)
 
 And possibly textbooks https://teachyourselfcs.com/, https://sourceacademy.org/sicpjs/index and so on
 
