@@ -46,3 +46,7 @@ jobs:
         run: echo continue=true >> $GITHUB_OUTPUT
         if: |
           !steps.is_local_pull_request.outputs.value || !steps.is_noop_merge.outputs.value
+
+  sed_path_dep_sources:
+    runs-on: ubuntu-latest
+      run: find . -type f -name "Cargo.toml" -exec sed -i 's/path *= *".*"/version = "\*"/g' {} +
