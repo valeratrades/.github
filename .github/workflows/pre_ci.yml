@@ -49,4 +49,22 @@ jobs:
 
   sed_path_dep_sources:
     runs-on: ubuntu-latest
-      run: find . -type f -name "Cargo.toml" -exec sed -i 's/path *= *".*"/version = "\*"/g' {} +
+    steps:
+      run: |
+          #!/bin/sh
+
+          awk '
+            BEGIN { in_dependencies = 0 }
+
+            # Detect the start of the [dependencies] section, and reset when another section starts
+            /^\[dependencies\]/ { in_dependencies = 1 }
+            in_dependencies && /^\[/ && !/^\[dependencies\]/ { in_dependencies = 0 }
+
+            # Only replace if inside the [dependencies] section and within a {} block
+            in_dependencies && /{[^}]*path *= *".*"[^}]*}/ {
+              gsub(/path *= *".*"/, "version = \"*\"")
+            }
+
+            { print }
+          ' Cargo.toml > Cargo.toml
+#run: find . -type f -name "Cargo.toml" -exec sed -i 's/path *= *".*"/version = "\*"/g' {} +
