@@ -62,8 +62,13 @@ jobs:
                 gsub(/path *= *"[^"]*"/, "version = \"*\"")
               }
               { print }
-            ' Cargo.toml > Cargo.toml
+            ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
           done
+      - name: Upload modified Cargo.toml files
+        uses: actions/upload-artifact@v3
+        with:
+          name: modified-cargo-files
+          path: ./**/*Cargo.toml
 
   final_output:
     needs: [pre_ci, sed_path_dep_sources]
