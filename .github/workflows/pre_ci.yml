@@ -64,3 +64,5 @@ jobs:
               { print }
             ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
           done
+      - name: Debug
+        run: cat Cargo.toml
