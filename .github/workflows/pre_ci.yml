@@ -69,6 +69,8 @@ jobs:
         with:
           name: modified-cargo-files
           path: ./**/*Cargo.toml
+      - name: debug env
+        run: ls -lA
 
   final_output:
     needs: [pre_ci, sed_path_dep_sources]
