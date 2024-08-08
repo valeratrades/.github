@@ -19,7 +19,7 @@ on:
         value: ${{jobs.final_output.outputs.continue}}
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   pre_ci:
@@ -48,8 +48,6 @@ jobs:
           !steps.is_local_pull_request.outputs.value || !steps.is_noop_merge.outputs.value
 
   sed_path_dep_sources:
-    permissions:
-      contents: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
