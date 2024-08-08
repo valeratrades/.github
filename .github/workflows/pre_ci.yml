@@ -19,7 +19,7 @@ on:
         value: ${{jobs.final_output.outputs.continue}}
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   pre_ci:
