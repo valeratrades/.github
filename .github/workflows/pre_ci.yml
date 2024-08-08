@@ -15,7 +15,8 @@ name: pre_ci
 on:
   workflow_call:
     outputs:
-      continue: ${{ jobs.final_output.outputs.continue }}
+      continue:
+        value: ${{jobs.final_output.outputs.continue}}
 
 permissions:
   contents: read
