@@ -64,5 +64,12 @@ jobs:
               { print }
             ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
           done
+
       - name: Debug
         run: cat Cargo.toml
+
+      - name: Upload modified Cargo.toml files
+        uses: actions/upload-artifact@v3
+        with:
+          name: cargo-toml-files
+          path: '**/Cargo.toml'
