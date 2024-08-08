@@ -16,7 +16,8 @@ on:
   workflow_call:
     outputs:
       continue:
-        value: ${{jobs.final_output.outputs.continue}}
+        description: "Whether to continue with subsequent jobs"
+        value: ${{ jobs.pre_ci.outputs.continue == 'true' && jobs.sed_path_dep_sources.result == 'success' }}
 
 permissions:
   contents: read
@@ -25,7 +26,7 @@ jobs:
   pre_ci:
     runs-on: ubuntu-latest
     outputs:
-      continue: ${{steps.decision.outputs.continue}}
+      continue: ${{ steps.decision.outputs.continue }}
 
     steps:
       - id: is_local_pull_request
@@ -71,17 +72,3 @@ jobs:
           path: ./**/*Cargo.toml
       - name: debug env
         run: ls -lA
-
-  final_output:
-    needs: [pre_ci, sed_path_dep_sources]
-    runs-on: ubuntu-latest
-    outputs:
-      continue: ${{ steps.set_output.outputs.continue }}
-    steps:
-      - id: set_output
-        run: |
-          if [ "${{ needs.pre_ci.outputs.continue }}" == "true" ]; then
-            echo "continue=true" >> $GITHUB_OUTPUT
-          else
-            echo "continue=false" >> $GITHUB_OUTPUT
-          fi
