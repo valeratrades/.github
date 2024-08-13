@@ -48,7 +48,7 @@ jobs:
         if: |
           !steps.is_local_pull_request.outputs.value || !steps.is_noop_merge.outputs.value
 
-  # Substitute path dependencies with version = "*" in Cargo.toml files. To mark a line for substitution, add a comment "#ga_sub" at its end.
+  # Substitute path dependencies with version = "*" in Cargo.toml files. To mark a line for substitution, add a comment "#ga: sub" at its end.
   sed_path_dep_sources:
     runs-on: ubuntu-latest
     steps:
@@ -60,7 +60,7 @@ jobs:
               BEGIN { in_dependencies = 0 }
               /^\[dependencies\]/ { in_dependencies = 1 }
               in_dependencies && /^\[/ && !/^\[dependencies\]/ { in_dependencies = 0 }
-              in_dependencies && /{[^}]*path *= *"[^"]*"[^}]*}/ && /#ga_sub/ {
+              in_dependencies && /{[^}]*path *= *"[^"]*"[^}]*}/ && /#ga: sub/ {
                 gsub(/path *= *"[^"]*"/, "version = \"*\"")
               }
               { print }
