@@ -60,8 +60,12 @@ jobs:
               BEGIN { in_dependencies = 0 }
               /^\[dependencies\]/ { in_dependencies = 1 }
               in_dependencies && /^\[/ && !/^\[dependencies\]/ { in_dependencies = 0 }
-              in_dependencies && /{[^}]*path *= *"[^"]*"[^}]*}/ && (/#ga: sub/ || /#ga: sub path/) {
-                gsub(/path *= *"[^"]*"/, "version = \"*\"")
+              in_dependencies && /{[^}]*path *= *"[^"]*"[^}]*}/ {
+                if (/#ga: sub path/ || /#ga: substitute path/) {
+                  gsub(/path *= *"[^"]*"/, "version = \"*\"")
+                } else if (/#ga: rm path/ || /#ga: remove path/) {
+                  gsub(/path *= *"[^"]*",/, "")
+                }
               }
               /#ga: comment out/ || /#ga: comment/ {
                 sub(/^/, "# ")
