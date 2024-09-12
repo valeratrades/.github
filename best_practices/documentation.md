@@ -4,6 +4,18 @@
 - [CONTRIBUTING.md](#contributingmd)
 , and explicitly say that everything else in the docs/ folder is a set of unorganized topical guides.
 
+### marks on comments
+- NB: important
+- Q | ?: question to be resolved later
+- \-: pseudo-code
+- TODO[!]*: todo, number of [!] signs for urgency
+- HACK
+- BUG
+- PERF
+- SAFETY
+- FUCK: like NB but strictly negative. It hilariously adds to succinctness, so that's now part of the syntaxis.
+
+
 ### ARCHITECTURE.md
 [Must have]<https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html>)
 Sections in architecture.md should write out their invariants [invariants](<https://matklad.github.io/2023/10/06/what-is-an-invariant.html>)
