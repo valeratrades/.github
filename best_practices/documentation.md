@@ -14,6 +14,7 @@
 - PERF
 - SAFETY
 - FUCK: like NB but strictly negative. It hilariously adds to succinctness, so that's now part of the syntaxis.
+- REF: link to reference or its summarized version in text
 
 
 ### ARCHITECTURE.md
