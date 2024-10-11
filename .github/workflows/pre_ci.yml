@@ -64,7 +64,7 @@ jobs:
                 if (/#ga: sub path/ || /#ga: substitute path/) {
                   gsub(/path *= *"[^"]*"/, "version = \"*\"")
                 } else if (/#ga: rm path/ || /#ga: remove path/) {
-                  gsub(/path *= *"[^"]*",/, "")
+                  gsub(/,* *path *= *"[^"]*"/, "")
                 }
               }
               /#ga: comment out/ || /#ga: comment/ {
