@@ -5,7 +5,7 @@
 , and explicitly say that everything else in the docs/ folder is a set of unorganized topical guides.
 
 ### marks on comments
-- NB: important
+- NB / NOTE: important
 - Q | ?: question to be resolved later
 - \-: pseudo-code
 - TODO[!]*: todo, number of [!] signs for urgency
