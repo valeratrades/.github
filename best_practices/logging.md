@@ -17,6 +17,13 @@
 
 - manual span creation: I found that trying to improve what `#[instrument]` provides by for example delaying filling some of the fields until later in the function to make it more precise, or manually creating spans for say async blocks that you can't automatically derive `#[instrument]` for, reduces iteration speed, so I seldom do it. Plus from readability standpoint, mixing together main logic with adjusting the span is not great.
 
+# Log Levels
+From [matklad](<https://matklad.github.io/2024/11/23/semver-is-not-about-you.html>)
+- `error` pages the operator immediately.
+- `warn` pages if it repeats frequently.
+- `info` is what you see in the prog logs when you actively look at them.
+- `debug` is what your developers see when they enable extra logging.
+
 
 # Viewing logs
 - popup with expanded info: https://github.com/valeratrades/dots/tree/master/home/v/.config/nvim/after/plugin/log.lua
