@@ -7,7 +7,6 @@
 ### marks on comments
 - NB / NOTE: important
 - Q | ?: question to be resolved later
-- \-: pseudo-code
 - TODO[!]*: todo, number of [!] signs for urgency
 - HACK
 - BUG
@@ -16,6 +15,12 @@
 - XXX: like NB but strictly negative
 - REF: link to reference or its summarized version in text
 - LOOP: similar to SAFETY, _every_ endless loop must have an explanation for its necessity
+
+#### temporary
+When developing it's nice to be able to annotate approximate desired map of the next steps
+As such, have 
+- DO | \-: pseudo-code, mapping out steps needing to be done, similar to how `sorry` is used in `lean`
+- dbg | DBG: something temporary that is introduced for testing purposes and is meant to be removed before committing
 
 
 ### ARCHITECTURE.md
