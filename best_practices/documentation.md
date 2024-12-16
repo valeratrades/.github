@@ -21,6 +21,7 @@ When developing it's nice to be able to annotate approximate desired map of the 
 As such, have 
 - DO | \-: pseudo-code, mapping out steps needing to be done, similar to how `sorry` is used in `lean`
 - dbg | DBG: something temporary that is introduced for testing purposes and is meant to be removed before committing
+- TEST: similar to DBG, marks places where I'm trying out a new thing. Should be removed after the result of the experiment is apparent.
 
 
 ### ARCHITECTURE.md
