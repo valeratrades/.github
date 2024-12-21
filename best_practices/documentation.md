@@ -19,7 +19,7 @@
 #### temporary
 When developing it's nice to be able to annotate approximate desired map of the next steps
 As such, have 
-- DO | \-: pseudo-code, mapping out steps needing to be done, similar to how `sorry` is used in `lean`
+- DO | \-: pseudo-code, mapping out steps needing to be done, similar to how `sorry` is used in `lean`, but obviously more urgent. Useful for grepping to find what I left at when coming back to a codebase.
 - dbg | DBG: something temporary that is introduced for testing purposes and is meant to be removed before committing
 - TEST: similar to DBG, marks places where I'm trying out a new thing. Should be removed after the result of the experiment is apparent.
 
