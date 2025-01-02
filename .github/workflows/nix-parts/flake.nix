@@ -3,7 +3,7 @@
   outputs = { self }: {
     shared = ./shared.nix;
     tokei = ./tokei.nix;
-    test = ./test.nix;
+    tests = ./tests.nix;
     doc = ./doc.nix;
     miri = ./miri.nix;
     clippy = ./clippy.nix;
