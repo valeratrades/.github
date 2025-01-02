@@ -1,8 +1,6 @@
 { ...
 }:
 {
-  name = "CI";
-  permissions.contents = "read";
   jobs.pre_ci = {
     uses = "valeratrades/.github/.github/workflows/pre_ci.yml@master";
   };
@@ -13,3 +11,4 @@
     RUSTUP_MAX_RETRIES = "10";
   };
 }
+
