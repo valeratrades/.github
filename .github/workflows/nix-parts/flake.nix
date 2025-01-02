@@ -2,10 +2,13 @@
 	description = "GitHub workflow parts";
 	outputs = { self }: {
 		shared = {
-			tokei = ./shared/tokei.nix;
 			base = ./shared/base.nix;
+
+			tokei = ./shared/tokei.nix;
 		};
 		rust = {
+			base = ./rust/base.nix;
+
 			tests = ./rust/tests.nix;
 			doc = ./rust/doc.nix;
 			miri = ./rust/miri.nix;
