@@ -1,4 +1,6 @@
-{ ...
+{ 
+rustc-versions,
+...
 }: {
   name = "Rust \${{matrix.rust}}";
   needs = "pre_ci";
@@ -6,7 +8,7 @@
   runs-on = "ubuntu-latest";
   strategy = {
     fail-fast = false;
-    matrix.rust = [ "nightly" "stable" ]; # dtolnay had [nightly, beta, stable, 1.70.0], hence the matrix
+    matrix.rust = rustc-versions; /*[ "nightly" "stable" ];*/ # dtolnay had [nightly, beta, stable, 1.70.0], hence the matrix
   };
   timeout-minutes = 45;
   steps = [
