@@ -6,8 +6,6 @@
 
 ### marks on comments
 - NB / NOTE: important
-- Q | ?: question to be resolved later
-- TODO[!]*: todo, number of [!] signs for urgency
 - HACK
 - BUG
 - PERF
@@ -22,6 +20,9 @@ As such, have
 - DO | \-: pseudo-code, mapping out steps needing to be done, similar to how `sorry` is used in `lean`, but obviously more urgent. Useful for grepping to find what I left at when coming back to a codebase.
 - dbg | DBG: something temporary that is introduced for testing purposes and is meant to be removed before committing
 - TEST: similar to DBG, marks places where I'm trying out a new thing. Should be removed after the result of the experiment is apparent.
+- Q | ?: question to be resolved later
+- TODO[!]*: todo, number of [!] signs for urgency
+- MOVE: a special case of TODO, convenient for mapping out architecture changes. Simply says where a thing should be moved to eventually.
 
 
 ### ARCHITECTURE.md
