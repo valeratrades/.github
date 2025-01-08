@@ -30,6 +30,11 @@ rustc-versions,
       run = "echo RUSTFLAGS=\${RUSTFLAGS}\\ -Zrandomize-layout\\ --cfg=exhaustive >> $GITHUB_ENV";
       "if" = "matrix.rust == 'nightly'";
     }
+				{
+			name = "Download modified by pre-ci Cargo.toml files";
+			uses = "actions/download-artifact@v4";
+			"with".name = "modified-cargo-files";
+		}
     # not sure why dtolnay has this
     #{ run = "cargo check --locked"; }
     { run = "cargo update"; }
