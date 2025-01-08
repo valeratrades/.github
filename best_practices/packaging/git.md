@@ -1,5 +1,10 @@
 Document stylistic details pertaining to git. If project uses area: prefixes for commits, spell out an explicit list of such prefixes.
 
+# Naming
+names should be strictly in `snake_case`. Hyphens are not allowed.
+
+# Other
+
 Consider documenting acceptable line length for the summary line. Git man page boldly declares that a summary should be under 50 characters, but that is just plain false. Even in the kernel, most summaries are somewhere between 50 and 80 characters.
 
 Definitely explicitly forbid adding large files to git. Repository size increases monotonically, git clone time is important.
