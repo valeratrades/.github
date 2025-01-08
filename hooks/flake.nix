@@ -3,6 +3,6 @@
 	outputs = { self }: {
 		appendCustom = ./append_custom.rs;
 		#treefmt = ./treefmt.tom;l
-		treefmt = (import ./treefmt.nix);
+		treefmt = ./treefmt.nix;
 	};
 }

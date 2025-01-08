@@ -2,7 +2,7 @@
 pkgs,
 ...
 	}:
-	(pkgs.formats.yaml { }).generate "" {
+	(pkgs.formats.toml { }).generate "" {
 	formatter = {
 		nix = {
 			command = "nixpkgs-fmt";
