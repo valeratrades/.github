@@ -7,6 +7,11 @@
   steps = [
     { uses = "actions/checkout@v4"; }
     { uses = "dtolnay/rust-toolchain@miri"; }
+		{
+			name = "Download modified by pre-ci Cargo.toml files";
+			uses = "actions/download-artifact@v4";
+			"with".name = "modified-cargo-files";
+		}
     { run = "cargo miri setup"; }
     {
       run = "cargo miri test";
