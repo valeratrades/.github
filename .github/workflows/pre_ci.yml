@@ -81,3 +81,10 @@ jobs:
           path: ./**/*Cargo.toml
       - name: debug env
         run: ls -lA
+      - name: debug changes
+        run: |
+          find . -name Cargo.toml -type f | while read -r file; do
+            echo "\n\n=== Contents of $file ==="
+            cat "$file"
+            echo "======================================="
+          done
