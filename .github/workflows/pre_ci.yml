@@ -53,9 +53,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      #- uses: actions/checkout@v4
-      #  with:
-      #    repository: "valeratrades/.github"
+      - uses: actions/checkout@v4
+        with:
+          repository: "valeratrades/.github"
+          path: .github/workflows
       
       - uses: dtolnay/rust-toolchain@master
         with:
@@ -82,7 +83,7 @@ jobs:
         #    ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
         #  done
         run: |
-          cargo +nightly -Zscript ./.github/workflows/pre_ci_sed_deps.rs
+          cargo +nightly -Zscript .github/workflows/pre_ci_sed_deps.rs
 
       - name: Upload modified Cargo.toml files
         uses: actions/upload-artifact@v4
