@@ -62,6 +62,9 @@ jobs:
         with:
           toolchain: nightly
 
+      - name: debug env
+        run: ls -lA
+
       - name: Replace path dependencies with version = "*"
         #run: |
         #  find . -name Cargo.toml -type f | while read -r file; do
@@ -90,9 +93,6 @@ jobs:
         with:
           name: modified-cargo-files
           path: ./**/*Cargo.toml
-
-      - name: debug env
-        run: ls -lA
 
       - name: debug changes
         run: |
