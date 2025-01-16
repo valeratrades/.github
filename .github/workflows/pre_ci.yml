@@ -57,13 +57,17 @@ jobs:
         with:
           repository: "valeratrades/.github"
           path: .github/workflows
+          path: gh-scripts
+          sparse-checkout: |
+            .github/workflows
+          sparse-checkout-cone-mode: false
       
       - uses: dtolnay/rust-toolchain@master
         with:
           toolchain: nightly
 
       - name: debug env
-        run: ls -lA
+        run: ls -lA; ls -lA .github/workflows; pwd; ls -lA gh-scripts
 
       - name: Replace path dependencies with version = "*"
         #run: |
