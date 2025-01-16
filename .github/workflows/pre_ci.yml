@@ -55,25 +55,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Replace path dependencies with version = "*"
+        #run: |
+        #  find . -name Cargo.toml -type f | while read -r file; do
+        #    awk '
+        #      BEGIN { in_dependencies = 0 }
+        #      /^\[dependencies\]/ { in_dependencies = 1 }
+        #      in_dependencies && /^\[/ && !/^\[dependencies\]/ { in_dependencies = 0 }
+        #      in_dependencies && /{[^}]*path *= *"[^"]*"[^}]*}/ {
+        #        if (/#ga: sub path/ || /#ga: substitute path/) {
+        #          gsub(/path *= *"[^"]*"/, "version = \"*\"")
+        #        } else if (/#ga: rm path/ || /#ga: remove path/) {
+        #          gsub(/,* *path *= *"[^"]*"/, "")
+        #        }
+        #      }
+        #      /#ga: comment out/ || /#ga: comment/ {
+        #        sub(/^/, "# ")
+        #      }
+        #      { print "          " $0 }
+        #    ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+        #  done
         run: |
-          find . -name Cargo.toml -type f | while read -r file; do
-            awk '
-              BEGIN { in_dependencies = 0 }
-              /^\[dependencies\]/ { in_dependencies = 1 }
-              in_dependencies && /^\[/ && !/^\[dependencies\]/ { in_dependencies = 0 }
-              in_dependencies && /{[^}]*path *= *"[^"]*"[^}]*}/ {
-                if (/#ga: sub path/ || /#ga: substitute path/) {
-                  gsub(/path *= *"[^"]*"/, "version = \"*\"")
-                } else if (/#ga: rm path/ || /#ga: remove path/) {
-                  gsub(/,* *path *= *"[^"]*"/, "")
-                }
-              }
-              /#ga: comment out/ || /#ga: comment/ {
-                sub(/^/, "# ")
-              }
-              { print "          " $0 }
-            ' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
-          done
+          cargo +nightly -Zscript ./pre_ci_sed_deps.rs
       - name: Upload modified Cargo.toml files
         uses: actions/upload-artifact@v4
         with:
