@@ -1,5 +1,6 @@
 { ... }: {
   name = "Clippy";
+  needs = "pre_ci";
   runs-on = "ubuntu-latest";
   "if" = "github.event_name != 'pull_request'";
   timeout-minutes = 45;
