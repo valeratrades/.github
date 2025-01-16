@@ -48,12 +48,15 @@ jobs:
         if: |
           !steps.is_local_pull_request.outputs.value || !steps.is_noop_merge.outputs.value
 
-  # Substitute path dependencies with version = "*" in Cargo.toml files. To mark a line for substitution, add a comment "#ga: sub" at its end.
-  #BUG: path = "[...]" CANNOT be _last_. Because bad code that's why.
+  # Substitute path dependencies with version = "*" in Cargo.toml files, or removes them altogether. Control by adding `ga: rm path` or `ga: sub path` at the end of the target line
   sed_path_dep_sources:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: "dtolnay/rust-toolchain@master";
+        with:
+          toolchain = "nightly";
+
       - name: Replace path dependencies with version = "*"
         #run: |
         #  find . -name Cargo.toml -type f | while read -r file; do
