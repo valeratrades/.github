@@ -53,9 +53,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: "dtolnay/rust-toolchain@master";
+      
+      - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain = "nightly";
+          toolchain: nightly
 
       - name: Replace path dependencies with version = "*"
         #run: |
@@ -79,13 +80,16 @@ jobs:
         #  done
         run: |
           cargo +nightly -Zscript ./pre_ci_sed_deps.rs
+
       - name: Upload modified Cargo.toml files
         uses: actions/upload-artifact@v4
         with:
           name: modified-cargo-files
           path: ./**/*Cargo.toml
+
       - name: debug env
         run: ls -lA
+
       - name: debug changes
         run: |
           find . -name Cargo.toml -type f | while read -r file; do
