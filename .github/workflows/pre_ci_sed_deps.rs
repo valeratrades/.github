@@ -1,4 +1,4 @@
-#!/usr/bin/env -S cargo +nightly -Zscript -q
+#!/usr/bin/env -S cargo -Zscript -q
 
 use std::{
 	fs,
@@ -93,7 +93,14 @@ fn visit_dirs(root_dir: &Path) -> io::Result<Vec<PathBuf>> {
 
 fn main() -> io::Result<()> {
 	let path = match std::env::args().nth(1) {
-		Some(path) => Path::new(&path),
+		// random helper for integration, isn't related to the main logic.
+		Some(arg) => match arg == "--print-path" || arg == "--print" {
+			true => {
+				println!("{}", std::env::args().next().unwrap());
+				std::process::exit(0);
+			}
+			false => PathBuf::from(arg),
+		},
 		None => {
 			eprintln!("Usage: {} <file_path>", std::env::args().next().unwrap());
 			std::process::exit(1);
@@ -102,7 +109,7 @@ fn main() -> io::Result<()> {
 
 	let mut modified_any = false;
 
-	for cargo_path in dbg!(visit_dirs(path)?) {
+	for cargo_path in dbg!(visit_dirs(&path)?) {
 		if process_file(&cargo_path)? {
 			println!("Modified: {}", cargo_path.display());
 			modified_any = true;
