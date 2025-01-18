@@ -73,17 +73,52 @@ fn process_file(path: &Path) -> io::Result<bool> {
 	Ok(modified)
 }
 
+//fn visit_dirs(root_dir: &Path) -> io::Result<Vec<PathBuf>> {
+//	let mut cargo_files = Vec::new();
+//	if root_dir.is_dir() {
+//		for entry in fs::read_dir(root_dir)? {
+//			let entry = entry?;
+//			let path = entry.path();
+//			if path.is_dir() {
+//				if !path.to_string_lossy().contains(".git") {
+//					cargo_files.extend(visit_dirs(&path)?);
+//				}
+//			} else if path.file_name().map(|s| s == "Cargo.toml").unwrap_or(false) {
+//				cargo_files.push(path);
+//			}
+//		}
+//	}
+//	Ok(cargo_files)
+//}
+use std::{collections::HashSet, process::Command};
+
+fn get_git_tracked_paths(root_dir: &Path) -> io::Result<HashSet<PathBuf>> {
+	let output = Command::new("git").arg("ls-files").current_dir(root_dir).output()?;
+
+	if !output.status.success() {
+		return Ok(HashSet::new());
+	}
+
+	let tracked_paths: HashSet<PathBuf> = String::from_utf8_lossy(&output.stdout).lines().map(PathBuf::from).collect();
+
+	Ok(tracked_paths)
+}
+
 fn visit_dirs(root_dir: &Path) -> io::Result<Vec<PathBuf>> {
+	let tracked_paths = get_git_tracked_paths(root_dir)?;
 	let mut cargo_files = Vec::new();
+
 	if root_dir.is_dir() {
 		for entry in fs::read_dir(root_dir)? {
 			let entry = entry?;
 			let path = entry.path();
+			let relative_path = path.strip_prefix(root_dir).unwrap_or(&path).to_path_buf();
+
 			if path.is_dir() {
-				if !path.to_string_lossy().contains(".git") {
+				if !path.to_string_lossy().contains(".git") && tracked_paths.iter().any(|p| p.starts_with(&relative_path)) {
 					cargo_files.extend(visit_dirs(&path)?);
 				}
-			} else if path.file_name().map(|s| s == "Cargo.toml").unwrap_or(false) {
+			} else if path.file_name().map(|s| s == "Cargo.toml").unwrap_or(false) && tracked_paths.contains(&relative_path) {
 				cargo_files.push(path);
 			}
 		}
@@ -94,6 +129,7 @@ fn visit_dirs(root_dir: &Path) -> io::Result<Vec<PathBuf>> {
 fn main() -> io::Result<()> {
 	let path = match std::env::args().nth(1) {
 		// random helper for integration, isn't related to the main logic.
+		// pretty pointless, because same could be achieved by doing `exec_path=$(strace -e trace=open,execve cargo -Zscript -q <script-path> 2>&1 | \ grep -oP '(?<=execve\(")/home/.+?\.cargo/target/.+?/[^"]+' | head -n 1)`
 		Some(arg) => match arg == "--print-path" || arg == "--print" {
 			true => {
 				println!("{}", std::env::args().next().unwrap());
