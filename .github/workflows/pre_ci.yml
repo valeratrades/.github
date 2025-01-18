@@ -70,7 +70,7 @@ jobs:
 
       - name: Replace path dependencies with version = "*"
         run: |
-          cargo +nightly -Zscript my_gh_stuff/.github/workflows/pre_ci_sed_deps.rs
+          cargo +nightly -Zscript my_gh_stuff/.github/workflows/pre_ci_sed_deps.rs ./
 
       - name: Upload modified Cargo.toml files
         uses: actions/upload-artifact@v4

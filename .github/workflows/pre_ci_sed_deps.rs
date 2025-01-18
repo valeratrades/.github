@@ -92,9 +92,17 @@ fn visit_dirs(root_dir: &Path) -> io::Result<Vec<PathBuf>> {
 }
 
 fn main() -> io::Result<()> {
+	let path = match std::env::args().nth(1) {
+		Some(path) => Path::new(&path),
+		None => {
+			eprintln!("Usage: {} <file_path>", std::env::args().next().unwrap());
+			std::process::exit(1);
+		}
+	};
+
 	let mut modified_any = false;
 
-	for cargo_path in dbg!(visit_dirs(Path::new("."))?) {
+	for cargo_path in dbg!(visit_dirs(path)?) {
 		if process_file(&cargo_path)? {
 			println!("Modified: {}", cargo_path.display());
 			modified_any = true;
