@@ -5,7 +5,7 @@
 , and explicitly say that everything else in the docs/ folder is a set of unorganized topical guides.
 
 ### marks on comments
-- NB / NOTE: important
+- NB | NOTE: important
 - HACK
 - BUG
 - PERF
@@ -15,6 +15,7 @@
 - LOOP: similar to SAFETY, _every_ endless loop must have an explanation for its necessity
 - REF: during development or post-factum, simple way to mark a link with additional information
 - DUP | DUPLICATION: similar to SAFETY and LOOP: explains why duplication can't/shouldn't be abstracted
+- DEP | DEPENDS | RELIES: list things that must be true for the logical block to function as expected
 
 #### temporary
 When developing it's nice to be able to annotate approximate desired map of the next steps
