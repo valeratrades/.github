@@ -11,7 +11,7 @@
     {
       name = "Check if Cargo.toml is sorted";
       run = ''
-        cargo sort -wc
+        cargo sort --workspace --grouped --check
         exit_code=$?
         if [ $exit_code != 0 ]; then
           echo "Cargo.toml is not sorted. Run \`cargo sort -w\` to fix it."
