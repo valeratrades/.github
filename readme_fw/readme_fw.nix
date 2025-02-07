@@ -12,7 +12,7 @@ Args:
 Example:
 ```nix
 let
-  license_defs = [
+  license = [
     { name = "blue_oak"; out_path = "LICENSE"; }
     { name = "mit license"; out_path = "LICENSE-MIT"; }
     { name = "apache license"; out_path = "LICENSE-APACHE"; }
@@ -22,8 +22,8 @@ in
   inherit pkgs;
   prj_name = "my_prj";
   loc = "500";
-  inherit license_defs;
-  badgeList = [ "msrv" "crates_io" "docs_rs" "loc" "ci" ];
+  inherit licenses;
+  badges = [ "msrv" "crates_io" "docs_rs" "loc" "ci" ];
 }
 ```
 */
