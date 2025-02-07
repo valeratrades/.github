@@ -31,7 +31,7 @@ in
 ```
 '';
   # not sure how to prop description if we don't have this
-  o = import ./readme_fw.nix;
+  generator = import ./readme_fw.nix;
 
   #outputs = { self }: {
   #  __functor = _: import ./readme_fw.nix;
