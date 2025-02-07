@@ -6,6 +6,8 @@
 	rust = {
     rustfmt = ./rust/rustfmt.nix;
 		deny = ./rust/deny.nix;
+		toolchain = ./rust/toolchain.nix;
+		config = ./rust/config.nix;
   };
   #TODO: gitignore: construct from base + each name from provided list
 }
