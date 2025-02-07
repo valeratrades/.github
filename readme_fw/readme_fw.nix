@@ -20,8 +20,11 @@ let
 	badgeModule = import ./badges.nix { inherit pkgs prj_name loc; };
   badges_out = badgeModule.combineBadges badges;
 
+	#rootStr = if builtins.isPath root then root else root + "/";
+	rootStr = pkgs.lib.removeSuffix "/" (toString root);
+
 	description_out = let
-		descriptionPath = "${toString root}/.readme_assets/description.md";
+		descriptionPath = "${rootStr}/.readme_assets/description.md";
 		md = if builtins.pathExists descriptionPath
 		then pkgs.lib.removeSuffix "\n" (builtins.readFile descriptionPath)
 			else builtins.trace "WARNING: ${toString descriptionPath} is missing" "TODO";
@@ -49,7 +52,7 @@ ${sh}
 <!-- markdownlint-restore -->'';
 
 	usage_out = let
-		usagePath = "${toString root}/.readme_assets/usage.md";
+		usagePath = "${rootStr}/.readme_assets/usage.md";
 		md = if builtins.pathExists usagePath
 		then pkgs.lib.removeSuffix "\n" (builtins.readFile usagePath)
 			else builtins.trace "WARNING: ${toString usagePath} is missing" "TODO";
@@ -68,7 +71,7 @@ ${md}
 </sup>
 	'';
 
-		otherPath = "${toString root}/.readme_assets/other.md";
+		otherPath = "${rootStr}/.readme_assets/other.md";
   other_out = 
     if builtins.pathExists otherPath 
     then "\n" + builtins.readFile (pkgs.runCommand "" {} ''
