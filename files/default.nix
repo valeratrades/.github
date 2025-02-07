@@ -6,6 +6,6 @@
 	rust = {
     rustfmt = ./rust/rustfmt.nix;
   };
-	rustfmt = ./rust/rustfmt.nix;
+	rustfmt = ./rust/rustfmt.nix; #dbg
   #TODO: gitignore: construct from base + each name from provided list
 }
