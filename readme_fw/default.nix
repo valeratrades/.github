@@ -30,8 +30,10 @@ in
 }
 ```
 '';
+  o = import ./readme_fw.nix;
 
-  outputs = { self }: {
-    __functor = _: import ./readme_fw.nix;
-  };
+  #outputs = { self }: {
+  #  __functor = _: import ./readme_fw.nix;
+  #};
+
 }
