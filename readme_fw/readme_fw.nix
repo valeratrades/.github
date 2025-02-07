@@ -1,36 +1,8 @@
-/* # Nix Readme Framework
-Generates a README.md with configurable badges and sections.
-
-Type: Function
-Args:
-  - pkgs: Package set with lib and runCommand
-  - prj_name: Project name (string)
-  - loc: Lines of code (string | int)
-  - license_defs: List of license definitions
-  - badgeList: List of badge names to include
-
-Example:
-```nix
-let
-  license = [
-    { name = "blue_oak"; out_path = "LICENSE"; }
-    { name = "mit license"; out_path = "LICENSE-MIT"; }
-    { name = "apache license"; out_path = "LICENSE-APACHE"; }
-  ];
-in
-(import ./readme_fw.nix) {
-  inherit pkgs;
-  prj_name = "my_prj";
-  loc = "500";
-  inherit licenses;
-  badges = [ "msrv" "crates_io" "docs_rs" "loc" "ci" ];
-}
-```
-*/
-{ pkgs, prj_name, loc, licenses, badges, ... }:
+{ pkgs, root, prj_name, loc, licenses, badges, ... }:
 
 # Validate inputs
 assert builtins.isAttrs pkgs && builtins.hasAttr "lib" pkgs && builtins.hasAttr "runCommand" pkgs;
+assert builtins.isPath root || builtins.isString root;
 assert builtins.isString prj_name && prj_name != "";
 assert builtins.isString loc || builtins.isInt loc;
 assert builtins.isList licenses && licenses != [];
@@ -49,7 +21,7 @@ let
   badges_out = badgeModule.combineBadges badges;
 
 	description_out = let
-		descriptionPath = ./.readme_assets/description.md;
+		descriptionPath = "${toString root}/.readme_assets/description.md";
 		md = if builtins.pathExists descriptionPath
 		then pkgs.lib.removeSuffix "\n" (builtins.readFile descriptionPath)
 			else builtins.trace "WARNING: ${toString descriptionPath} is missing" "TODO";
@@ -77,7 +49,7 @@ ${sh}
 <!-- markdownlint-restore -->'';
 
 	usage_out = let
-		usagePath = ./.readme_assets/usage.md;
+		usagePath = "${toString root}/.readme_assets/usage.md";
 		md = if builtins.pathExists usagePath
 		then pkgs.lib.removeSuffix "\n" (builtins.readFile usagePath)
 			else builtins.trace "WARNING: ${toString usagePath} is missing" "TODO";
@@ -96,7 +68,7 @@ ${md}
 </sup>
 	'';
 
-		otherPath = ./.readme_assets/other.md;
+		otherPath = "${toString root}/.readme_assets/other.md";
   other_out = 
     if builtins.pathExists otherPath 
     then "\n" + builtins.readFile (pkgs.runCommand "" {} ''
