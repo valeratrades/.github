@@ -1,4 +1,4 @@
-{
+{nixpkgs}: {
   description = ''
 # Nix Readme Framework
 Generates a README.md with configurable badges and sections.
