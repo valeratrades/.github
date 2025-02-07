@@ -2,7 +2,7 @@
 
 # Validate inputs
 assert builtins.isAttrs pkgs && builtins.hasAttr "lib" pkgs && builtins.hasAttr "runCommand" pkgs;
-assert builtins.isPath root || builtins.isString root;
+assert builtins.isPath root;
 assert builtins.isString prj_name && prj_name != "";
 assert builtins.isString loc || builtins.isInt loc;
 assert builtins.isList licenses && licenses != [];
@@ -17,13 +17,11 @@ assert builtins.all builtins.isString badges;
 assert builtins.all (name: builtins.hasAttr name (import ./badges.nix { inherit pkgs prj_name loc; }).badges) badges;
 
 let
+	rootStr = pkgs.lib.removeSuffix "/" (toString root);
+
+	#Q: theoretically could have this thing right here count the LoC itself. Could be cleaner.
 	badgeModule = import ./badges.nix { inherit pkgs prj_name loc; };
   badges_out = badgeModule.combineBadges badges;
-
-	#rootStr = if builtins.isPath root then root else root + "/";
-	#rootStr = pkgs.lib.removeSuffix "/" (toString root);
-	rootPath = builtins.path { path = toString root; };
-  rootStr = pkgs.lib.removeSuffix "/" (toString rootPath);
 
 	description_out = let
 		descriptionPath = "${rootStr}/.readme_assets/description.md";
@@ -35,7 +33,7 @@ let
 ${md}'';
 	
 	installation_out = let
-		installPath = ./.readme_assets/installation.sh;
+		installPath = "${rootStr}/.readme_assets/installation.sh";
 		sh = if builtins.pathExists installPath
 		then pkgs.lib.removeSuffix "\n" (builtins.readFile installPath)
       else builtins.trace "WARNING: ${toString installPath} is missing" "TODO";
