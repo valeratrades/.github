@@ -21,7 +21,7 @@ let
 	rootStr = pkgs.lib.removeSuffix "/" (toString root);
 
 	#Q: theoretically could have this thing right here count the LoC itself. Could be cleaner.
-	badgeModule = import ./badges.nix { inherit pkgs prj_name loc last-supported-version; };
+	badgeModule = builtins.trace "DEBUG: loading badges" import ./badges.nix { inherit pkgs prj_name loc; last-supported-version = last-supported-version; };
   badges_out = badgeModule.combineBadges badges;
 
 	description_out = let
