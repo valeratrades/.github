@@ -4,7 +4,7 @@
     blue_oak = ./licenses/blue_oak.md;
   };
 	rust = {
-    rustfmt = ./rust/rustfmt.toml;
+    #rustfmt = ./rust/rustfmt.toml;
   };
   treefmt = ./treefmt.toml;
   #TODO: gitignore: construct from base + each name from provided list
