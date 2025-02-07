@@ -5,7 +5,10 @@
   };
   rust = {
     #rustfmt = ./rust/rustfmt.toml;
-		rustfmt = (nixpkgs.formats.toml {}).generate "" ./rust/rustfmt.nix;
+		rustfmt = let
+			rustfmtConf = (import ./rust/rustfmt.nix);
+			in
+			(nixpkgs.formats.toml {}).generate "rustfmt.toml" rustfmtConf;
   };
   treefmt = ./treefmt.toml;
   #TODO: gitignore: construct from base + each name from provided list
