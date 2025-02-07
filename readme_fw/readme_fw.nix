@@ -1,5 +1,5 @@
 #TODO!!!!: add arg for last supported version //NOTE: it can be implemented in a manner general for all projects, not necessarily rust-specific, so warrants a special arg.
-{ pkgs, root, prj_name, loc, licenses, badges, ... }:
+{ pkgs, root, prj_name, loc, licenses, badges, last-supported-version, ... }:
 
 # Validate inputs
 assert builtins.isAttrs pkgs && builtins.hasAttr "lib" pkgs && builtins.hasAttr "runCommand" pkgs;
@@ -21,7 +21,7 @@ let
 	rootStr = pkgs.lib.removeSuffix "/" (toString root);
 
 	#Q: theoretically could have this thing right here count the LoC itself. Could be cleaner.
-	badgeModule = import ./badges.nix { inherit pkgs prj_name loc; };
+	badgeModule = import ./badges.nix { inherit pkgs prj_name loc last-supported-version; };
   badges_out = badgeModule.combineBadges badges;
 
 	description_out = let

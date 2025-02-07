@@ -1,7 +1,7 @@
-{ pkgs, prj_name, loc }:
+{ pkgs, prj_name, loc, last-supported-version }:
 let
   badges = {
-    msrv = ''![Minimum Supported Rust Version](https://img.shields.io/badge/nightly-1.85+-ab6000.svg)'';
+    msrv = ''![Minimum Supported Rust Version](https://img.shields.io/badge/${last-supported-version}+-ab6000.svg)'';
     
     crates_io = ''[<img alt="crates.io" src="https://img.shields.io/crates/v/${prj_name}.svg?color=fc8d62&logo=rust" height="20" style=flat-square>](https://crates.io/crates/${prj_name})'';
     
