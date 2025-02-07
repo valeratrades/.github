@@ -1,4 +1,4 @@
-{ pkgs, ... }: 
+{ nixpkgs }: 
 let
 	gitignore = {
 		shared = ./gitignore/.gitignore;
