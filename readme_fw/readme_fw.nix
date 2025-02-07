@@ -21,7 +21,9 @@ let
   badges_out = badgeModule.combineBadges badges;
 
 	#rootStr = if builtins.isPath root then root else root + "/";
-	rootStr = pkgs.lib.removeSuffix "/" (toString root);
+	#rootStr = pkgs.lib.removeSuffix "/" (toString root);
+	rootPath = builtins.path { path = toString root; };
+  rootStr = pkgs.lib.removeSuffix "/" (toString rootPath);
 
 	description_out = let
 		descriptionPath = "${rootStr}/.readme_assets/description.md";
