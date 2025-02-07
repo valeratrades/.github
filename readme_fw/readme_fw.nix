@@ -1,5 +1,5 @@
 #TODO!!!!: add arg for last supported version //NOTE: it can be implemented in a manner general for all projects, not necessarily rust-specific, so warrants a special arg.
-{ pkgs, root, prj_name, loc, licenses, badges, last-supported-version, ... }:
+{ pkgs, root, prj_name, loc, licenses, badges, last-supported-version }:
 
 # Validate inputs
 assert builtins.isAttrs pkgs && builtins.hasAttr "lib" pkgs && builtins.hasAttr "runCommand" pkgs;
