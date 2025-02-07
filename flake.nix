@@ -1,6 +1,5 @@
 {
-  outputs = { self }: {
-    files = import ./files;
+  outputs = { self, nixpkgs }: {
+    files = import ./files { inherit nixpkgs; };
   };
 }
-

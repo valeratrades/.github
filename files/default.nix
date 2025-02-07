@@ -1,4 +1,5 @@
-{ pkgs ? import <nixpkgs> {} }: {
+{ nixpkgs }: {
+  description = "Project conf files";
   licenses = {
     blue_oak = ./licenses/blue_oak.md;
   };
