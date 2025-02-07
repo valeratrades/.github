@@ -6,6 +6,6 @@
 	rust = {
     rustfmt = ./rust/rustfmt.nix;
   };
-  treefmt = ./treefmt.toml;
+	rustfmt = ./rust/rustfmt.nix;
   #TODO: gitignore: construct from base + each name from provided list
 }
