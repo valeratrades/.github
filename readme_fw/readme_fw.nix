@@ -1,3 +1,4 @@
+#TODO!!!!: add arg for last supported version //NOTE: it can be implemented in a manner general for all projects, not necessarily rust-specific, so warrants a special arg.
 { pkgs, root, prj_name, loc, licenses, badges, ... }:
 
 # Validate inputs
@@ -45,11 +46,9 @@ ${md}'';
     <h2>Installation</h2>
   </summary>
 	<pre>
-		<code class="language-sh">
-${sh}
-		</code></pre>
+		<code class="language-sh">${sh}</code></pre>
 </details>
-<!-- markdownlint-restore -->'';
+<!-- markdownlint-restore -->''; # `${sh}` is not padded with newlines, as that physically pads the rendered code block
 
 	usage_out = let
 		usagePath = "${rootStr}/.readme_assets/usage.md";
