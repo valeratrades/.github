@@ -137,7 +137,6 @@ ${builtins.readFile description_out}
 ${builtins.readFile installation_out}
 ${builtins.readFile usage_out}${other_out}
 ${builtins.readFile best_practices_out}
-${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}
 EOF
 '';
