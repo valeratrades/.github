@@ -54,7 +54,8 @@ let
 		then pkgs.lib.removeSuffix "\n" (builtins.readFile descriptionPath)
 			else builtins.trace "WARNING: ${toString descriptionPath} is missing" "TODO";
 		in
-		pkgs.runCommand "" {} '' cat > $out <<'EOF'${md}'';
+		pkgs.runCommand "" {} '' cat > $out <<'EOF'
+${md}'';
 	
 	installation_out = let
 		installPath = ./.readme_assets/installation.sh;
