@@ -10,5 +10,5 @@
     toolchain = ./rust/toolchain.nix;
     config = ./rust/config.nix;
   };
-	gitignore = ./gitignore.nix;
+	gitignore = import ./gitignore.nix; #TEST
 }
