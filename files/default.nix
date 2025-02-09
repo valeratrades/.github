@@ -1,25 +1,4 @@
 { nixpkgs }: 
-let
-  gitignore = {
-    shared = ./gitignore/.gitignore;
-    rs = ./gitignore/rs.gitignore;
-    go = ./gitignore/go.gitignore;
-    py = ./gitignore/py.gitignore;
-  };
- 
-	#BUG: does not work at all
-  combineGitignore = names:
-    let
-      # Always include shared, then add the requested files
-      allNames = [ "shared" ] ++ names;
-      # Concatenate all the gitignore files with newlines between them
-      combined = builtins.concatStringsSep "\n" (map (name: builtins.readFile gitignore.${name}) allNames);
-    in
-    nixpkgs.runCommand "combined-gitignore" {} ''
-      cat > $out <<'EOF'
-${combined}
-EOF'';
-in
 {
   description = "Project conf files";
   licenses = {
@@ -31,6 +10,5 @@ in
     toolchain = ./rust/toolchain.nix;
     config = ./rust/config.nix;
   };
-  
-  inherit gitignore combineGitignore;
+	gitignore = ./gitignore.nix;
 }

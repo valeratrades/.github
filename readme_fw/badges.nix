@@ -26,5 +26,5 @@ ${mainBadges}
 EOF'';
 
 in {
-  inherit badges combineBadges;
+  inherit combineBadges;
 }
