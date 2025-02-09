@@ -1,4 +1,4 @@
-{ pkgs, ... }: 
+{ nixpkgs }: 
 let
   gitignore = {
     shared = ./gitignore/.gitignore;
@@ -6,7 +6,8 @@ let
     go = ./gitignore/go.gitignore;
     py = ./gitignore/py.gitignore;
   };
-  
+ 
+	#BUG: does not work at all
   combineGitignore = names:
     let
       # Always include shared, then add the requested files
@@ -14,7 +15,7 @@ let
       # Concatenate all the gitignore files with newlines between them
       combined = builtins.concatStringsSep "\n" (map (name: builtins.readFile gitignore.${name}) allNames);
     in
-    pkgs.runCommand "combined-gitignore" {} ''
+    nixpkgs.runCommand "combined-gitignore" {} ''
       cat > $out <<'EOF'
 ${combined}
 EOF'';
