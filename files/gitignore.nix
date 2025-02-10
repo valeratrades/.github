@@ -7,4 +7,8 @@ let
     py = pkgs.runCommand "py-gitignore" {} ''cat ${./gitignore/py.gitignore} > $out'';
   };
 in
-  builtins.concatStringsSep "\n" (map (lang: gitignore.${lang}) (["shared"] ++ langs))
+  pkgs.runCommand "combined-gitignore" {} ''
+    {
+      ${builtins.concatStringsSep "\n" (map (lang: "cat ${gitignore.${lang}}") (["shared"] ++ langs))}
+    } > $out
+  ''
