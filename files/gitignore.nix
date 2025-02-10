@@ -7,8 +7,5 @@ let
     py = (builtins.readFile ./gitignore/py.gitignore);
   };
 
-in {
-	gitignore = builtins.trace "${gitignore.rs}" builtins.concatStringsSep "\n" (lang: gitignore.${lang}) [ "shared"] ++ langs;
-	
-}
-
+in
+	(builtins.concatStringsSep "\n" (lang: gitignore.${lang}) [ "shared"] ++ langs)
