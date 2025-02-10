@@ -9,6 +9,6 @@ let
 in
   pkgs.runCommand "combined-gitignore" {} ''
     {
-      ${builtins.concatStringsSep "\n" (map (lang: "cat ${gitignore.${lang}}") (["shared"] ++ langs))}
+      ${builtins.concatStringsSep "\n\n\n" (map (lang: "cat ${gitignore.${lang}}") (["shared"] ++ langs))}
     } > $out
   ''
