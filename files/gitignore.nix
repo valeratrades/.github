@@ -7,17 +7,8 @@ let
     py = (builtins.readFile ./gitignore/py.gitignore);
   };
 
-  combineGitignore = selected_langs: 
-    let
-			all = [ "shared" ] ++ selected_langs;
-      joined = (builtins.concatStringsSep "\n" (lang: gitignore.${lang}) all);
-    in
-    pkgs.runCommand "" {} ''
-      cat > $out <<'EOF'
-${joined}
-EOF'';
-
 in {
-	gitignore = combineGitignore langs;
+	gitignore = builtins.trace "${gitignore.rs}" builtins.concatStringsSep "\n" (lang: gitignore.${lang}) [ "shared"] ++ langs;
+	
 }
 
