@@ -1,10 +1,14 @@
-{ langs }: 
+{ pkgs, langs }: 
 let
   gitignore = {
-    shared = (builtins.readFile ./gitignore/.gitignore);
-    rs = (builtins.readFile ./gitignore/rs.gitignore);
-    go = (builtins.readFile ./gitignore/go.gitignore);
-    py = (builtins.readFile ./gitignore/py.gitignore);
+    shared = ./gitignore/.gitignore;
+    rs = ./gitignore/rs.gitignore;
+    go = ./gitignore/go.gitignore;
+    py = ./gitignore/py.gitignore;
   };
 in
-  builtins.concatStringsSep "\n" (map (lang: gitignore.${lang}) (["shared"] ++ langs))
+  pkgs.runCommand "combined-gitignore" {} ''
+    {
+      ${builtins.concatStringsSep "\n" (map (lang: "cat ${gitignore.${lang}}") (["shared"] ++ langs))}
+    } > $out
+  ''
