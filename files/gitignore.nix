@@ -1,10 +1,10 @@
 { pkgs, langs }: 
 let
   gitignore = {
-    shared = builtins.readFile ./gitignore/.gitignore;
-    rs = builtins.readFile ./gitignore/rs.gitignore;
-    go = builtins.readFile ./gitignore/go.gitignore;
-    py = builtins.readFile ./gitignore/py.gitignore;
+    shared = (builtins.readFile ./gitignore/.gitignore);
+    rs = (builtins.readFile ./gitignore/rs.gitignore);
+    go = (builtins.readFile ./gitignore/go.gitignore);
+    py = (builtins.readFile ./gitignore/py.gitignore);
   };
 
   combineGitignore = selected_langs: 
