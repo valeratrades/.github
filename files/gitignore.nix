@@ -10,7 +10,7 @@ let
   combineGitignore = selected_langs: 
     let
 			all = [ "shared" ] ++ selected_langs;
-      joined = builtins.concatStringsSep "\n" (lang: gitignore.${lang}) all;
+      joined = (builtins.concatStringsSep "\n" (lang: gitignore.${lang}) all);
     in
     pkgs.runCommand "" {} ''
       cat > $out <<'EOF'
