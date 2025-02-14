@@ -20,8 +20,10 @@ let
     go-security_audit = ./go/security_audit.nix;
   };
 
-  constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } 
-    (map (path: import (builtins.getAttr path files)) paths);
+  # Just create a jobs map where value is a list of all imported jobs
+  constructJobs = paths: {
+    jobs = map (path: import (builtins.getAttr path files)) paths;
+  };
   
   base = {
     on = {
