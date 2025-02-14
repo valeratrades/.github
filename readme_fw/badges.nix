@@ -4,8 +4,7 @@ let
     nativeBuildInputs = [ pkgs.tokei pkgs.jq ];
   } ''
     cd ${./.}
-    tokei --output json > tokei_output.json
-    jq '.Total.code' tokei_output.json > $out
+    tokei --output json | jq '.Total.code' > $out
   ''));
 
   badges = {
