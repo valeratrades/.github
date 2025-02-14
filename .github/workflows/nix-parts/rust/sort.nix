@@ -1,4 +1,4 @@
-{}: {
+ {
   name = "Cargo Sorted";
   runs-on = "ubuntu-latest";
   steps = [
