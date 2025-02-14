@@ -6,7 +6,7 @@ let
   };
   rust = {
     base = ./rust/base.nix;
-		tests = import ./rust/tests.nix { inherit lastSupportedVersion; };
+    tests = import ./rust/tests.nix { inherit lastSupportedVersion; };
     doc = ./rust/doc.nix;
     miri = ./rust/miri.nix;
     clippy = ./rust/clippy.nix;
@@ -18,9 +18,23 @@ let
     gocritic = ./go/gocritic.nix;
     security_audit = ./go/security_audit.nix;
   };
+  # Create a mapping function that converts string paths to actual files
+  pathToFile = path:
+    let
+      segments = pkgs.lib.splitString "." path;
+      category = builtins.head segments;
+      name = builtins.elemAt segments 1;
+    in
+    (
+      if category == "shared" then shared
+      else if category == "rust" then rust
+      else if category == "go" then go
+      else throw "Unknown category: ${category}"
+    ).${name};
 
-	constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } paths;
-
+  constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } 
+    (map (path: import (pathToFile path)) paths);
+    
   base = {
     on = {
       push = { };
@@ -28,7 +42,6 @@ let
       workflow_dispatch = { };
     };
   };
-
 in
 {
   errors = (pkgs.formats.yaml { }).generate "" (
@@ -39,7 +52,6 @@ in
       jobs = constructJobs jobsErrors;
     }
   );
-
   warnings = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Warnings";
