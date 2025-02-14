@@ -29,7 +29,7 @@ ${parts.workflows}
 
     files = import ./files { inherit nixpkgs; };
     hooks = import ./hooks { inherit nixpkgs; };
-    readme-fw = import ./readme_fw { pkgs = nixpkgs; };
+    readme-fw = ./readme_fw;
     workflows = import ./.github/workflows/nix-parts { inherit nixpkgs; };
   };
 }
