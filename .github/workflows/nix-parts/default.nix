@@ -19,19 +19,27 @@ let
     security_audit = ./go/security_audit.nix;
   };
 
-  splitPath = path: let
-    parts = pkgs.lib.splitString "." path;
-  in {
-    subpath = builtins.head parts;
-    name = builtins.elemAt parts 1;
+  # Lookup table to map strings to imported files
+  lookupTable = {
+    "shared.base" = shared.base;
+    "shared.tokei" = shared.tokei;
+    "rust.base" = rust.base;
+    "rust.tests" = rust.tests;
+    "rust.doc" = rust.doc;
+    "rust.miri" = rust.miri;
+    "rust.clippy" = rust.clippy;
+    "rust.machete" = rust.machete;
+    "rust.sort" = rust.sort;
+    "go.tests" = go.tests;
+    "go.gocritic" = go.gocritic;
+    "go.security_audit" = go.security_audit;
   };
 
-  constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } 
-    (map (path: 
-      let parts = splitPath path;
-      in import (builtins.getAttr parts.name (builtins.getAttr parts.subpath { inherit shared rust go; }))
-    ) paths);
-  
+  # Function to construct jobs based on the lookup table
+  constructJobs = jobNames: pkgs.lib.foldl (acc: jobName: 
+    pkgs.lib.recursiveUpdate acc (import lookupTable.${jobName})
+  ) {} jobNames;
+
   base = {
     on = {
       push = { };
@@ -39,6 +47,7 @@ let
       workflow_dispatch = { };
     };
   };
+
 in
 {
   errors = (pkgs.formats.yaml { }).generate "" (
@@ -49,6 +58,7 @@ in
       jobs = constructJobs jobsErrors;
     }
   );
+
   warnings = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Warnings";
