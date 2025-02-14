@@ -1,5 +1,5 @@
-{ nixpkgs }: {
- description = "GitHub workflow parts";
+{ nixpkgs }:
+{
  shared = {
    base = ./shared/base.nix;
 
