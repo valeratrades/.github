@@ -9,7 +9,7 @@ assert builtins.isList licenses && licenses != [];
 assert builtins.all (item: 
   builtins.isAttrs item && 
   builtins.hasAttr "name" item && builtins.isString item.name && item.name != "" &&
-  builtins.hasAttr "out_path" item && builtins.isString item.out_path && item.out_path != ""
+  builtins.hasAttr "outPath" item && builtins.isString item.outPath && item.outPath != ""
 ) licenses;
 assert builtins.isList badges && badges != [];
 assert builtins.all builtins.isString badges;
@@ -78,10 +78,10 @@ EOF'')
 
 	licenses_out = let
 		licenseText = if builtins.length licenses == 1 
-			then ''Licensed under <a href="${(builtins.head licenses).out_path}">${(builtins.head licenses).name}</a>''
-		else "Licensed under either of <a href=\"${(builtins.head licenses).out_path}\">${(builtins.head licenses).name}</a> " + 
+			then ''Licensed under <a href="${(builtins.head licenses).outPath}">${(builtins.head licenses).name}</a>''
+		else "Licensed under either of <a href=\"${(builtins.head licenses).outPath}\">${(builtins.head licenses).name}</a> " + 
 			(builtins.concatStringsSep " " 
-				(builtins.map (l: ''OR <a href="${l.out_path}">${l.name}</a>'') (builtins.tail licenses))) +
+				(builtins.map (l: ''OR <a href="${l.outPath}">${l.name}</a>'') (builtins.tail licenses))) +
 			" at your option.";
 		in
 		pkgs.runCommand "readme_fw/licenses.md" {} ''
