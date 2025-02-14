@@ -1,26 +1,28 @@
 { pkgs, lastSupportedVersion, jobsErrors, jobsWarnings }:
 let
   files = {
-    # shared files at base level
+		# shared {{{
     base = ./shared/base.nix;
     tokei = ./shared/tokei.nix;
+		#,}}}
     
-    # rust files prefixed
+		# rust {{{
     rust-base = ./rust/base.nix;
-    rust-tests = import ./rust/tests.nix { inherit lastSupportedVersion; };
+    rust-tests = (import ./rust/tests.nix { inherit lastSupportedVersion; });
     rust-doc = ./rust/doc.nix;
     rust-miri = ./rust/miri.nix;
     rust-clippy = ./rust/clippy.nix;
     rust-machete = ./rust/machete.nix;
     rust-sort = ./rust/sort.nix;
+		#,}}}
     
-    # go files prefixed
+		# go {{{
     go-tests = ./go/tests.nix;
     go-gocritic = ./go/gocritic.nix;
     go-security_audit = ./go/security_audit.nix;
+		#,}}}
   };
 
-  # Just create a jobs map where value is a list of all imported jobs
   constructJobs = paths: {
     jobs = map (path: import (builtins.getAttr path files)) paths;
   };
