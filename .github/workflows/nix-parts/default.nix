@@ -19,41 +19,19 @@ let
     security_audit = ./go/security_audit.nix;
   };
 
-  pathToFile = path:
-    let
-      segments = pkgs.lib.splitString "." path;
-      category = builtins.head segments;
-      name = builtins.elemAt segments 1;
-    in
-    {
-      file = (
-        if category == "shared" then shared
-        else if category == "rust" then rust
-        else if category == "go" then go
-        else throw "Unknown category: ${category}"
-      ).${name};
-      category = category;
-    };
+  splitPath = path: let
+    parts = pkgs.lib.splitString "." path;
+  in {
+    subpath = builtins.head parts;
+    name = builtins.elemAt parts 1;
+  };
 
-  # Group jobs by category and merge them separately
-  groupJobsByCategory = paths:
-    let
-      fileInfos = map pathToFile paths;
-      byCategory = pkgs.lib.groupBy (x: x.category) fileInfos;
-      mergeCategory = files: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } (map (x: import x.file) files);
-    in
-    pkgs.lib.mapAttrs (category: files: mergeCategory files) byCategory;
-
-  constructJobs = paths:
-    let
-      categorizedJobs = groupJobsByCategory paths;
-      # Merge categories in specific order: rust first, then others
-      rustJobs = categorizedJobs.rust or { };
-      sharedJobs = categorizedJobs.shared or { };
-      goJobs = categorizedJobs.go or { };
-    in
-    rustJobs // sharedJobs // goJobs;
-
+  constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } 
+    (map (path: 
+      let parts = splitPath path;
+      in import (builtins.getAttr parts.name (builtins.getAttr parts.subpath { inherit shared rust go; }))
+    ) paths);
+  
   base = {
     on = {
       push = { };
