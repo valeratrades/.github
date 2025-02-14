@@ -8,7 +8,7 @@ let
     
 		# rust {{{
     rust-base = ./rust/base.nix;
-    rust-tests = (import ./rust/tests.nix { inherit lastSupportedVersion; });
+		rust-tests = ./rust/tests.nix;
     rust-doc = ./rust/doc.nix;
     rust-miri = ./rust/miri.nix;
     rust-clippy = ./rust/clippy.nix;
@@ -23,8 +23,14 @@ let
 		#,}}}
   };
 
+	importFile = path:
+    let file = builtins.getAttr path files;
+    in if path == "rust-tests"
+       then import file { inherit lastSupportedVersion; }
+       else import file;
+
   constructJobs = paths: {
-    jobs = map (path: import (builtins.getAttr path files)) paths;
+    jobs = map importFile paths;
   };
   
   base = {
