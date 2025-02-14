@@ -1,5 +1,4 @@
-{ ...
-}: {
+{
   name = "Reasonable Amount of Comments";
   runs-on = "ubuntu-latest";
   steps = [

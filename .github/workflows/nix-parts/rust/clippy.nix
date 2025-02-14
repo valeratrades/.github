@@ -1,4 +1,4 @@
-{}: {
+ {
   name = "Clippy";
   needs = "pre_ci";
   runs-on = "ubuntu-latest";

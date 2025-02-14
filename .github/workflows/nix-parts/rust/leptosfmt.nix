@@ -1,4 +1,4 @@
-{}: {
+ {
 	name = "leptosfmt";
 	runs-on = "ubuntu-latest";
 	steps = [

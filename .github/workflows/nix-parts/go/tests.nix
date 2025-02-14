@@ -1,4 +1,4 @@
-{...}: {
+{
      strategy.matrix = {
        go-version = [ "stable" "oldstable" ];
        os = [ "ubuntu-latest" "macos-latest" "windows-latest" ];

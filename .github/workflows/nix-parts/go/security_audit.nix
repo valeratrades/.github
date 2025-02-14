@@ -1,4 +1,4 @@
-{...}: {
+{
      runs-on = "ubuntu-latest";
      steps = [
        {
