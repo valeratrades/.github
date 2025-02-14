@@ -1,8 +1,8 @@
-{ pkgs, prjName }:
+{ pkgs, pname }:
 let
   script = ''
-    config_filepath="''${HOME}/.config/${prjName}.toml"
-    config_dir="''${HOME}/.config/${prjName}"
+    config_filepath="''${HOME}/.config/${pname}.toml"
+    config_dir="''${HOME}/.config/${pname}"
     if [ -f "$config_filepath" ] || [ -d "$config_dir" ]; then
       echo "Copying project's toml config to examples/"
       mkdir -p ./examples
