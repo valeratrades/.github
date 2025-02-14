@@ -6,7 +6,7 @@ let
   };
   rust = {
     base = ./rust/base.nix;
-    tests = ./rust/tests.nix;
+		tests = import ./rust/tests.nix { inherit lastSupportedVersion; };
     doc = ./rust/doc.nix;
     miri = ./rust/miri.nix;
     clippy = ./rust/clippy.nix;
@@ -19,16 +19,7 @@ let
     security_audit = ./go/security_audit.nix;
   };
 
-  constructJobs = paths:
-    let
-      imports = map (path:
-        if path == "rust.tests" then
-					import ${path} { inherit lastSupportedVersion; }
-        else
-					import ${path}
-      ) paths;
-    in
-    pkgs.lib.foldl pkgs.lib.recursiveUpdate { } imports;
+	constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } paths;
 
   base = {
     on = {
