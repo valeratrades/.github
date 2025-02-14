@@ -1,5 +1,4 @@
-{ ...
-}:
+{ }:
 {
   jobs.pre_ci = {
     uses = "valeratrades/.github/.github/workflows/pre_ci.yml@master";

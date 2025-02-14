@@ -1,4 +1,4 @@
-{ ... }: {
+{}: {
   name = "Miri";
   needs = "pre_ci";
   "if" = "needs.pre_ci.outputs.continue";

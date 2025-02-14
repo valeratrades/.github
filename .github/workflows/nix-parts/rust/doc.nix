@@ -1,5 +1,4 @@
-{ ...
-}: {
+{ }: {
   name = "Documentation";
   needs = "pre_ci";
   "if" = "needs.pre_ci.outputs.continue";

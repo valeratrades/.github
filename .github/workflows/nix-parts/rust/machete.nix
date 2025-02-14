@@ -1,4 +1,4 @@
-{ ... }: {
+{}: {
   name = "Unused Dependencies";
   runs-on = "ubuntu-latest";
   steps = [
