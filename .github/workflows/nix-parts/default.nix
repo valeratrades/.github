@@ -49,7 +49,7 @@ in
       name = "Errors";
       permissions = (import files.base).permissions;
       env = (import files.rust-base).env;
-      jobs = pkgs.lib.recursiveUpdate files.rust-base.jobs (constructJobs jobsErrors);
+      jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsErrors);
     }
   );
   warnings = (pkgs.formats.yaml { }).generate "" (
@@ -57,7 +57,7 @@ in
       name = "Warnings";
       permissions = (import files.base).permissions;
 			env = (import files.rust-base).env;
-      jobs = pkgs.lib.recursiveUpdate files.rust-base.jobs (constructJobs jobsWarnings);
+      jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsWarnings);
     }
   );
 }
