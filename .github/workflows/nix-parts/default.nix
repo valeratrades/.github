@@ -42,19 +42,21 @@ let
   };
 in
 {
+	#TODO!!!!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
   errors = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Errors";
       permissions = (import files.base).permissions;
       env = (import files.rust-base).env;
-      jobs = constructJobs jobsErrors;
+      jobs = pkgs.lib.recursiveUpdate files.rust-base.jobs (constructJobs jobsErrors);
     }
   );
   warnings = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Warnings";
       permissions = (import files.base).permissions;
-      jobs = constructJobs jobsWarnings;
+			env = (import files.rust-base).env;
+      jobs = pkgs.lib.recursiveUpdate files.rust-base.jobs (constructJobs jobsWarnings);
     }
   );
 }
