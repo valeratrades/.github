@@ -23,15 +23,15 @@ let
 		#,}}}
   };
 
-	importFile = path:
-    let file = builtins.getAttr path files;
-    in if path == "rust-tests"
-       then import file { inherit lastSupportedVersion; }
-       else import file;
-
-  constructJobs = paths: {
-    jobs = map importFile paths;
+	importFile = path: {
+    name = path;
+    value = if path == "rust-tests"
+            then import (builtins.getAttr path files) { inherit lastSupportedVersion; }
+            else import (builtins.getAttr path files);
   };
+
+  constructJobs = paths: 
+    builtins.listToAttrs (map importFile paths);
   
   base = {
     on = {
