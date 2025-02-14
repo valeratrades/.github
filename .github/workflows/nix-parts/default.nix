@@ -43,6 +43,7 @@ let
 in
 {
 	#TODO!!!!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
+	#Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
   errors = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Errors";
