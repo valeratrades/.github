@@ -18,23 +18,42 @@ let
     gocritic = ./go/gocritic.nix;
     security_audit = ./go/security_audit.nix;
   };
-  # Create a mapping function that converts string paths to actual files
+
   pathToFile = path:
     let
       segments = pkgs.lib.splitString "." path;
       category = builtins.head segments;
       name = builtins.elemAt segments 1;
     in
-    (
-      if category == "shared" then shared
-      else if category == "rust" then rust
-      else if category == "go" then go
-      else throw "Unknown category: ${category}"
-    ).${name};
+    {
+      file = (
+        if category == "shared" then shared
+        else if category == "rust" then rust
+        else if category == "go" then go
+        else throw "Unknown category: ${category}"
+      ).${name};
+      category = category;
+    };
 
-  constructJobs = paths: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } 
-    (map (path: import (pathToFile path)) paths);
-    
+  # Group jobs by category and merge them separately
+  groupJobsByCategory = paths:
+    let
+      fileInfos = map pathToFile paths;
+      byCategory = pkgs.lib.groupBy (x: x.category) fileInfos;
+      mergeCategory = files: pkgs.lib.foldl pkgs.lib.recursiveUpdate { } (map (x: import x.file) files);
+    in
+    pkgs.lib.mapAttrs (category: files: mergeCategory files) byCategory;
+
+  constructJobs = paths:
+    let
+      categorizedJobs = groupJobsByCategory paths;
+      # Merge categories in specific order: rust first, then others
+      rustJobs = categorizedJobs.rust or { };
+      sharedJobs = categorizedJobs.shared or { };
+      goJobs = categorizedJobs.go or { };
+    in
+    rustJobs // sharedJobs // goJobs;
+
   base = {
     on = {
       push = { };
