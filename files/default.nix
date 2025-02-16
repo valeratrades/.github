@@ -1,5 +1,8 @@
 #TODO: change to gen tomls here
-{ pkgs }: 
+{ nixpkgs }: 
+let
+	pkgs = import nixpkgs {};
+in
 {
   description = "Project conf files";
   licenses = {
