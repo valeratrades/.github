@@ -21,6 +21,19 @@ let
 	badgeModule = builtins.trace "DEBUG: loading badges" import ./badges.nix { inherit pkgs pname lastSupportedVersion rootDir; };
   badges_out = badgeModule.combineBadges badges;
 
+	warningPath = "${rootStr}/.readme_assets/warning.md";
+warning_out = 
+  if builtins.pathExists warningPath 
+  then "\n" + builtins.readFile (pkgs.runCommand "" {} ''
+    cat > $out <<'EOF'
+> [!WARNING]
+${builtins.concatStringsSep "\n" (map (line: "> " + line) 
+  (pkgs.lib.splitString "\n" 
+    (pkgs.lib.removeSuffix "\n" (builtins.readFile otherPath))))}
+EOF'')
+  else ""; # fully optional, so take care not to add newlines if it's missing
+
+
 	description_out = let
 		descriptionPath = "${rootStr}/.readme_assets/description.md";
 		md = if builtins.pathExists descriptionPath
@@ -102,7 +115,7 @@ be licensed as above, without any additional terms or conditions.
 	'';
 	in {
 	combined = pkgs.runCommand "README.md" {} ''
-  cat > $out <<'EOF'
+  cat > $out <<'EOF'${warning_out}
 ${builtins.readFile badges_out}
 ${builtins.readFile description_out}
 ${builtins.readFile installation_out}
