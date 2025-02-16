@@ -1,4 +1,3 @@
-#TODO!!!!: add arg for last supported version //NOTE: it can be implemented in a manner general for all projects, not necessarily rust-specific, so warrants a special arg.
 { pkgs, rootDir, pname, licenses, badges, lastSupportedVersion }:
 
 # Validate inputs
@@ -29,7 +28,7 @@ warning_out =
 > [!WARNING]
 ${builtins.concatStringsSep "\n" (map (line: "> " + line) 
   (pkgs.lib.splitString "\n" 
-    (pkgs.lib.removeSuffix "\n" (builtins.readFile otherPath))))}
+    (pkgs.lib.removeSuffix "\n" (builtins.readFile warningPath))))}
 EOF'')
   else ""; # fully optional, so take care not to add newlines if it's missing
 
