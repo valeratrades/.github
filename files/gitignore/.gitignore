@@ -5,6 +5,7 @@
 **/bin/
 **/*.test
 **/*.out
+**/**.db
 
 ## Personal
 **/_*

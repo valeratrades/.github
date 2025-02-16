@@ -1,8 +1,5 @@
 #TODO: change to gen tomls here
-{ nixpkgs }: 
-let
-	pkgs = import nixpkgs {};
-in
+{ pkgs }: 
 {
   description = "Project conf files";
   licenses = {
@@ -15,5 +12,8 @@ in
     toolchain = ./rust/toolchain.nix;
     config = ./rust/config.nix;
   };
+	python = {
+		ruff = ./python/ruff.nix;
+	};
 	gitignore = ./gitignore.nix;
 }
