@@ -1,5 +1,5 @@
 #TODO: change to gen tomls here
-{ pkgs }: 
+{ pkgs, gitignoreLangs }: 
 {
   description = "Project conf files";
   licenses = {
@@ -15,5 +15,5 @@
 	python = {
 		ruff = ./python/ruff.nix;
 	};
-	gitignore = ./gitignore.nix;
+	gitignore = ./gitignore.nix {inherit pkgs; langs = gitignoreLangs;};
 }
