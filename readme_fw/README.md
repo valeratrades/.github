@@ -1,7 +1,7 @@
 > [!WARNING]
-> For example
-> Here I could say that
-> This is not actively developed
+> For example \
+> Here I could say that \
+> This is not actively developed \
 
 # readme-fw
 ![Minimum Supported Rust Version](https://img.shields.io/badge/nightly-1.86+-ab6000.svg)
