@@ -26,7 +26,7 @@ warning_out =
   then "\n" + builtins.readFile (pkgs.runCommand "" {} ''
     cat > $out <<'EOF'
 > [!WARNING]
-${builtins.concatStringsSep "\n" (map (line: "> " + line) 
+${builtins.concatStringsSep " \\\n" (map (line: "> " + line) 
   (pkgs.lib.splitString "\n" 
     (pkgs.lib.removeSuffix "\n" (builtins.readFile warningPath))))}
 EOF'')
