@@ -112,8 +112,8 @@ for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be licensed as above, without any additional terms or conditions.
 </sub>
 	'';
-	in {
-	combined = pkgs.runCommand "README.md" {} ''
+	in
+	pkgs.runCommand "README.md" {} ''
   cat > $out <<'EOF'${warning_out}
 ${builtins.readFile badges_out}
 ${builtins.readFile description_out}
@@ -122,5 +122,4 @@ ${builtins.readFile usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}
 EOF
-'';
-}
+''
