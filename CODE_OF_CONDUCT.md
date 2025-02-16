@@ -8,7 +8,7 @@ when interacting in these repositories as if they were rust-lang repositories.
 
 ## Enforcement
 
-Please contact Valera Sakharov at *valeratrades<!--disable autolink-->@gmail.com* to
+Contact Valeriy Sakharov at *valeratrades<!--disable autolink-->@gmail.com* to
 call attention to code of conduct violations.
 
 Note that while we elect to follow the Rust Code of Conduct, this is not an
