@@ -4,15 +4,15 @@
   licenses = {
     blue_oak = ./licenses/blue_oak.md;
   };
-	preCommit = ./pre_commit.nix;
+  preCommit = import ./pre_commit.nix;
   rust = {
-    rustfmt = ./rust/rustfmt.nix;
-    deny = ./rust/deny.nix;
-    toolchain = ./rust/toolchain.nix;
-    config = ./rust/config.nix;
+    rustfmt = import ./rust/rustfmt.nix;
+    deny = import ./rust/deny.nix;
+    toolchain = import ./rust/toolchain.nix;
+    config = import ./rust/config.nix;
   };
-	python = {
-		ruff = ./python/ruff.nix;
-	};
-	gitignore = ./gitignore.nix;
+  python = {
+    ruff = import ./python/ruff.nix;
+  };
+  gitignore = import ./gitignore.nix;
 }
