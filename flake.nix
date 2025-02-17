@@ -27,9 +27,9 @@ ${parts.readme-fw}
 ${parts.workflows}
 '';
 
-    files = ./files;
-    hooks = ./hooks;
-    readme-fw = ./readme_fw;
-		ci = ./.github/workflows/nix-parts;
+    files = import ./files;
+    hooks = import ./hooks;
+    readme-fw = import ./readme_fw;
+		ci = import ./.github/workflows/nix-parts;
   };
 }
