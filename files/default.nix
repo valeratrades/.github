@@ -1,11 +1,9 @@
-#TODO: change to gen tomls here
-{ pkgs, gitignoreLangs }: 
 {
   description = "Project conf files";
   licenses = {
     blue_oak = ./licenses/blue_oak.md;
   };
-	preCommit = import ./pre_commit.nix {inherit pkgs;};
+	preCommit = ./pre_commit.nix;
   rust = {
     rustfmt = ./rust/rustfmt.nix;
     deny = ./rust/deny.nix;
@@ -15,5 +13,5 @@
 	python = {
 		ruff = ./python/ruff.nix;
 	};
-	gitignore = import ./gitignore.nix {inherit pkgs; langs = gitignoreLangs;};
+	gitignore = ./gitignore.nix;
 }
