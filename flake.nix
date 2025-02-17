@@ -28,7 +28,7 @@ ${parts.workflows}
 '';
 
     files = import ./files;
-    hooks = import ./hooks;
+    hooks = ./hooks; # no `import`, as it contains non-nix files
     readme-fw = import ./readme_fw;
 		ci = import ./.github/workflows/nix-parts;
   };
