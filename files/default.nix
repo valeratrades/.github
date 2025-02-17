@@ -15,5 +15,5 @@
 	python = {
 		ruff = ./python/ruff.nix;
 	};
-	gitignore = ./gitignore.nix {inherit pkgs; langs = gitignoreLangs;};
+	gitignore = (import ./gitignore.nix {inherit pkgs; langs = gitignoreLangs;});
 }
