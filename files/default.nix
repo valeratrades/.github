@@ -1,3 +1,4 @@
+# Things are generated at lower level, as this can have unbounded number of members, and each can have its own args, - if I were to gen tomls at this level, we'd start taking a bunch of random args
 {
   description = "Project conf files";
   licenses = {
