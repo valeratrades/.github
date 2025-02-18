@@ -30,6 +30,6 @@ ${parts.workflows}
     files = import ./files;
     hooks = import ./hooks;
     readme-fw = import ./readme_fw;
-		ci = ./.github/workflows/nix-parts;
+		ci = import ./.github/workflows/nix-parts;
   };
 }
