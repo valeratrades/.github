@@ -1,7 +1,4 @@
-{
-  pkgs,
-  ...
-}: (pkgs.formats.toml { }).generate "ruff.toml" {
+{ pkgs }: (pkgs.formats.toml { }).generate "ruff.toml" {
   # Basic settings
   line-length = 210;
   indent-width = 2;
