@@ -8,9 +8,6 @@
   src = [ "src" "test" ];
   # not-in-test = false;
 
-  fixable = [ "ALL" ];
-  unfixable = [ ];
-
   # Formatting settings
   format = {
     quote-style = "double";
@@ -28,7 +25,7 @@
   # Linting settings
   lint = {
     # Allow fix for all enabled rules (when `--fix`) is provided.
-    fixable = [ ]; # [ "ALL" ]
+    fixable = [ "ALL" ];
     unfixable = [ ];
     dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$";
     task-tags = [
