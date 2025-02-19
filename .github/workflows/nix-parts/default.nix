@@ -19,7 +19,7 @@ let
 		# go {{{
     go-tests = ./go/tests.nix;
     go-gocritic = ./go/gocritic.nix;
-    go-security_audit = ./go/security_audit.nix;
+    go-security-audit = ./go/security_audit.nix;
 		#,}}}
   };
 
