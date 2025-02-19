@@ -6,17 +6,17 @@
 		agpl = ./licenses/agpl.txt;
   };
   preCommit = import ./pre_commit.nix;
-  rs = {
-    rustfmt = import ./rs/rustfmt.nix;
-    deny = import ./rs/deny.nix;
-    toolchain = import ./rs/toolchain.nix;
-    config = import ./rs/config.nix;
+  rust = {
+    rustfmt = import ./rust/rustfmt.nix;
+    deny = import ./rust/deny.nix;
+    toolchain = import ./rust/toolchain.nix;
+    config = import ./rust/config.nix;
   };
-  py = {
-    ruff = import ./py/ruff.nix;
+  python = {
+    ruff = import ./python/ruff.nix;
   };
-	go = {
-		gofumpt = import ./go/gofumpt.nix;
+	golong = {
+		gofumpt = import ./golong/gofumpt.nix;
 	};
   gitignore = import ./gitignore.nix;
 }
