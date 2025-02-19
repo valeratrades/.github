@@ -3,6 +3,7 @@
   description = "Project conf files";
   licenses = {
     blue_oak = ./licenses/blue_oak.md;
+		agpl = ./licenses/agpl.txt;
   };
   preCommit = import ./pre_commit.nix;
   rust = {
