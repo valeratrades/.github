@@ -1,8 +1,8 @@
 {
   pkgs,
-  ...
+  toolchain,
 }: (pkgs.formats.toml { }).generate "toolchain.toml" {
   toolchain = {
-    channel = "nightly";
+    channel = "${toolchain}";
   };
 }
