@@ -72,6 +72,7 @@ ${md}
 
 	best_practices_out = pkgs.runCommand "" {} ''
 		cat > $out <<'EOF'
+
 <br>
 
 <sup>
@@ -120,6 +121,4 @@ ${builtins.readFile description_out}
 ${builtins.readFile installation_out}
 ${builtins.readFile usage_out}${other_out}
 ${builtins.readFile best_practices_out}
-${builtins.readFile licenses_out}
-EOF
-''
+${builtins.readFile licenses_out}EOF''
