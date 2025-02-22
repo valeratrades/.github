@@ -68,7 +68,7 @@ ${md}'';
 		pkgs.runCommand "" {} '' cat > $out <<'EOF'
 ## Usage
 ${md}
-		'';
+'';
 
 	best_practices_out = pkgs.runCommand "" {} ''
 		cat > $out <<'EOF'
@@ -77,7 +77,7 @@ ${md}
 <sup>
 	This repository follows <a href="https://github.com/valeratrades/.github/tree/master/best_practices">my best practices</a> and <a href="https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md">Tiger Style</a> (except "proper capitalization for acronyms": (VsrState, not VSRState) and formatting).
 </sup>
-	'';
+'';
 
 		otherPath = "${rootStr}/.readme_assets/other.md";
   other_out = 
