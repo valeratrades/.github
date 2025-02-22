@@ -11,8 +11,9 @@
 				];
 			};
 		};
-		trim-trailing-whitespace = {
-			enable = true;
-		};
+		# fails randomly at times
+		#trim-trailing-whitespace = {
+		#	enable = true;
+		#};
 	};
 }

@@ -1,3 +1,4 @@
+#TODO: allow all `.md` files to be written as `.typ` instead.
 { pkgs, rootDir, pname, licenses, badges, lastSupportedVersion }:
 
 # Validate inputs
