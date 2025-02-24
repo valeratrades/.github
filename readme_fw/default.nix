@@ -21,55 +21,74 @@ let
 	badgeModule = builtins.trace "DEBUG: loading badges" import ./badges.nix { inherit pkgs pname lastSupportedVersion rootDir; };
   badges_out = badgeModule.combineBadges badges;
 
-	warningPath = "${rootStr}/.readme_assets/warning.md";
-warning_out = 
-  if builtins.pathExists warningPath 
-  then "\n" + builtins.readFile (pkgs.runCommand "" {} ''
-    cat > $out <<'EOF'
-> [!WARNING]
-${builtins.concatStringsSep " \\\n" (map (line: "> " + line) 
-  (pkgs.lib.splitString "\n" 
-    (pkgs.lib.removeSuffix "\n" (builtins.readFile warningPath))))}
-EOF'')
-  else ""; # fully optional, so take care not to add newlines if it's missing
+
+	# Helper function to process markdown sections with standardized handling
+processSection = { 
+  path,           # Path to the file relative to root
+  optional ? false, # Whether to warn on missing source for a section
+  transform ? (content: content) # Function that transforms content (including adding any prefix/suffix)
+}:
+let
+  fullPath = "${rootStr}/${path}";
+  exists = builtins.pathExists fullPath;
+  
+	# Handle missing files based on `optional` flag
+  rawContent = if exists
+    then pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath)
+    else if optional
+      then ""
+      else builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
+
+  # Apply path replacement automatically for markdown files //TODO: extend to support `typ` too
+  contentWithPaths = if pkgs.lib.hasSuffix ".md" path && exists
+    then builtins.replaceStrings ["(./"] ["(./.readme_assets/"] rawContent
+    else rawContent;
+
+  out = (transform contentWithPaths) + (if exists then
+    "\n"
+    else "");
+in
+    /*builtins.trace ''TRACE: ${path}: "${out}"''*/ out;
 
 
-	description_out = let
-		descriptionPath = "${rootStr}/.readme_assets/description.md";
-		md = if builtins.pathExists descriptionPath
-		then pkgs.lib.removeSuffix "\n" (builtins.readFile descriptionPath)
-			else builtins.trace "WARNING: ${toString descriptionPath} is missing" "TODO";
-		in
-		pkgs.runCommand "" {} '' cat > $out <<'EOF'
-${md}'';
+  warning_out = processSection {
+  path = ".readme_assets/warning.md";
+  optional = true;
+  transform = (content: 
+    if content == "" 
+    then "" 
+    else "\n> [!WARNING]\n" + 
+      builtins.concatStringsSep " \\\n" (map (line: "> " + line) 
+        (pkgs.lib.splitString "\n" content))
+  );
+};
+
+
+	description_out = processSection {
+		path = ".readme_assets/description.md";
+	};
 	
-	installation_out = let
-		installPath = "${rootStr}/.readme_assets/installation.sh";
-		sh = if builtins.pathExists installPath
-		then pkgs.lib.removeSuffix "\n" (builtins.readFile installPath)
-      else builtins.trace "WARNING: ${toString installPath} is missing" "TODO";
-		in
-		pkgs.runCommand "" {} '' cat > $out <<'EOF'
+  installation_out = processSection {
+    path = ".readme_assets/installation.sh";
+    transform = (sh: ''
 <!-- markdownlint-disable -->
 <details>
   <summary>
     <h2>Installation</h2>
   </summary>
-	<pre>
-		<code class="language-sh">${sh}</code></pre>
+  <pre>
+    <code class="language-sh">${sh}</code></pre>
 </details>
-<!-- markdownlint-restore -->''; # `${sh}` is not padded with newlines, as that physically pads the rendered code block
+<!-- markdownlint-restore -->
+  ''); # `${sh}` is not padded with newlines, as that physically pads the rendered code block
+  };
 
-	usage_out = let
-		usagePath = "${rootStr}/.readme_assets/usage.md";
-		md = if builtins.pathExists usagePath
-		then pkgs.lib.removeSuffix "\n" (builtins.readFile usagePath)
-			else builtins.trace "WARNING: ${toString usagePath} is missing" "TODO";
-		in
-		pkgs.runCommand "" {} '' cat > $out <<'EOF'
+	usage_out = processSection {
+		path = ".readme_assets/usage.md";
+		transform = (md: ''
 ## Usage
-${md}
-'';
+${md}'');
+	};
 
 	best_practices_out = pkgs.runCommand "" {} ''
 		cat > $out <<'EOF'
@@ -81,14 +100,11 @@ ${md}
 </sup>
 '';
 
-		otherPath = "${rootStr}/.readme_assets/other.md";
-  other_out = 
-    if builtins.pathExists otherPath 
-    then "\n" + builtins.readFile (pkgs.runCommand "" {} ''
-      cat > $out <<'EOF'
-${pkgs.lib.removeSuffix "\n" (builtins.readFile otherPath)}
-EOF'')
-    else ""; # `other` is fully optional, so take care not to add newlines if it's missing
+
+other_out = processSection {
+  path = ".readme_assets/other.md";
+  optional = true;
+};
 
 	licenses_out = let
 		licenseText = if builtins.length licenses == 1 
@@ -118,8 +134,8 @@ be licensed as above, without any additional terms or conditions.
 	pkgs.runCommand "README.md" {} ''
   cat > $out <<'EOF'${warning_out}
 ${builtins.readFile badges_out}
-${builtins.readFile description_out}
-${builtins.readFile installation_out}
-${builtins.readFile usage_out}${other_out}
+${description_out}
+${installation_out}
+${usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}EOF''
