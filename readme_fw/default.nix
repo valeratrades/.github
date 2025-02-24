@@ -44,7 +44,7 @@ let
     then builtins.replaceStrings ["(./"] ["(./.readme_assets/"] rawContent
     else rawContent;
 
-  out = (transform contentWithPaths) + (if exists then
+  out = (transform contentWithPaths) + (if (exists || !optional) then
     "\n"
     else "");
 in
@@ -87,7 +87,8 @@ in
 		path = ".readme_assets/usage.md";
 		transform = (md: ''
 ## Usage
-${md}'');
+${md}
+'');
 	};
 
 	best_practices_out = pkgs.runCommand "" {} ''
