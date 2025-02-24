@@ -22,4 +22,5 @@ and now "settings" refers to all the things the projects refers to at runtime to
 
 ## Words in text
 ### or/xor
-Any instance of "or" in text signify what's commonly written as "or/and" and is pure logical `OR`. Common utilisation of "or" to mean `XOR` is always written as, well, "xor"
+Any instance of "or" in text signify what's commonly written as "or/and" and is pure logical `OR`. Common utilisation of "or" to mean `XOR` is always written as, well, "xor".
+Similarly, "OR"/"XOR" could be used interchangeably with lowercase versions; only reason for utilisation being ease of visual parsing.
