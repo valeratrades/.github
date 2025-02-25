@@ -34,7 +34,7 @@ let
   
 	# Handle missing files based on `optional` flag
   rawContent = if exists
-    then pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath)
+    then pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath) #TODO: remove **all** trailing newlines, not just one
     else if optional
       then ""
       else builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
