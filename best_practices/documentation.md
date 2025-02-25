@@ -27,8 +27,7 @@ As such, have
 - TODO[!]*: todo, number of [!] signs for urgency
 - MOVE: a special case of TODO, convenient for mapping out architecture changes. Simply says where a thing should be moved to eventually.
 - DEPRECATE: a note to self to get around to deprecating something. Not to be used when native methods for marking something for deprecation are available (like `#[deprecated]` in rust)
-- OUTDATED
-- PLACEHOLDER
+- OUTDATED: could mark an old doc comment with it. Or rather anything outside of the main control flow, validity of which is not checked automatically, and which I notice is not fresh.
 
 
 ### ARCHITECTURE.md
