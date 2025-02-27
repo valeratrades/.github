@@ -9,4 +9,12 @@
     "-Z" "track-diagnostics"
 		"--cfg" "web_sys_unstable_apis"
   ];
+	profile = {
+		release = {
+			codegen-backend = "cranelift";
+		};
+		dev = {
+			codegen-backend = "cranelift";
+		};
+	};
 }
