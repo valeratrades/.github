@@ -1,7 +1,5 @@
-{
-  pkgs,
-  ...
-}: (pkgs.formats.toml { }).generate "config.toml" {
+{ pkgs }:
+(pkgs.formats.toml { }).generate "config.toml" {
   target."x86_64-unknown-linux-gnu".rustflags = [
     "-C" "link-arg=-fuse-ld=mold"
     "--cfg" "tokio_unstable"

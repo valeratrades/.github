@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs }:
 	(pkgs.formats.toml { }).generate "" {
 	# Stable
 	brace_style = "PreferSameLine";

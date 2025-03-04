@@ -1,7 +1,5 @@
-{
-  pkgs,
-  ...
-}: let
+{ pkgs }:
+let
   # Helper function to create a target entry
   mkTarget = triple: { inherit triple; };
 in
