@@ -10,7 +10,6 @@ pkgs,
 		};
 		rust = {
 			command = "rustfmt";
-			options = ["--edition" "2024"];
 			includes = ["*.rs"];
 		};
 		# Does not seem to work (treefmt feels VERY raw)
