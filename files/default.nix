@@ -11,6 +11,7 @@
     deny = import ./rust/deny.nix;
     toolchain = import ./rust/toolchain.nix;
     config = import ./rust/config.nix;
+		clippy = import ./rust/clippy.nix;
   };
   python = {
     ruff = import ./python/ruff.nix;
