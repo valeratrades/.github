@@ -9,10 +9,7 @@
 		"--cfg" "procmacro2_semver_exempt"
   ];
 	profile = {
-		release = {
-			codegen-backend = "cranelift";
-		};
-		dev = {
+		rust = {
 			codegen-backend = "cranelift";
 		};
 	};
