@@ -1,22 +1,22 @@
 { pkgs }: (pkgs.formats.toml { }).generate "ruff.toml" {
   # Basic settings
-  line-length = 210;
-  indent-width = 2;
+  line_length = 210;
+  indent_width = 2;
   src = [ "src" "test" ];
-  # not-in-test = false;
+  # not_in_test = false;
 
   # Formatting settings
   format = {
-    quote-style = "double";
-    indent-style = "tab";
-    docstring-code-format = true; # false
-    skip-magic-trailing-comma = false;
+    quote_style = "double";
+    indent_style = "tab";
+    docstring_code_format = true; # false
+    skip_magic_trailing_comma = false;
   };
 
   # Import sorting settings
   lint.isort = {
-    combine-as-imports = true;
-    required-imports = [ "from __future__ import annotations" ];
+    combine_as_imports = true;
+    required_imports = [ "from __future__ import annotations" ];
   };
 
   # Linting settings
@@ -24,8 +24,8 @@
     # Allow fix for all enabled rules (when `--fix`) is provided.
     fixable = [ "ALL" ];
     unfixable = [ ];
-    dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$";
-    task-tags = [
+    dummy_variable_rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$";
+    task_tags = [
       "TODO"
       "FIXME"
       "Q"
@@ -72,7 +72,7 @@
   };
 
   # Per-file ignore settings
-  "lint.per-file-ignores"."tests/**/*.py" = [
+  "lint.per_file_ignores"."tests/**/*.py" = [
     "D100"
     "D103"
     "B018"
