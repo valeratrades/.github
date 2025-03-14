@@ -2,3 +2,4 @@
 .upload_py_lib.sh
 **/__pycache__/
 .py-env/
+.ruff_cache/
