@@ -81,6 +81,7 @@ in
 </details>
 <!-- markdownlint-restore -->
   ''); # `${sh}` is not padded with newlines, as that physically pads the rendered code block
+		optional = true;
   };
 
 	usage_out = processSection {
