@@ -71,6 +71,7 @@ in
   installation_out = processSection {
     path = ".readme_assets/installation.sh";
     transform = (sh: ''
+
 <!-- markdownlint-disable -->
 <details>
   <summary>
@@ -136,8 +137,7 @@ be licensed as above, without any additional terms or conditions.
 	pkgs.runCommand "README.md" {} ''
   cat > $out <<'EOF'${warning_out}
 ${builtins.readFile badges_out}
-${description_out}
-${installation_out}
+${description_out}${installation_out}
 ${usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}EOF''
