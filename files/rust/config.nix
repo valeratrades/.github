@@ -6,7 +6,7 @@
     "-Z" "threads=8"
     "-Z" "track-diagnostics"
 		"--cfg" "web_sys_unstable_apis"
-		"--cfg" "procmacro2_semver_exempt"
+		#"--cfg" "procmacro2_semver_exempt"
   ];
 	profile = {
 		rust = {
