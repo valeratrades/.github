@@ -6,13 +6,15 @@
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-  }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+    }:
     flake-utils.lib.eachDefaultSystem (
-      system: let
+      system:
+      let
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
@@ -30,9 +32,16 @@
               outPath = "LICENSE";
             }
           ];
-          badges = ["msrv" "crates_io" "docs_rs" "loc" "ci"];
+          badges = [
+            "msrv"
+            "crates_io"
+            "docs_rs"
+            "loc"
+            "ci"
+          ];
         };
-      in {
+      in
+      {
         devShells.default = pkgs.mkShell {
           shellHook = ''
             cp -f ${readme} ./README.md
