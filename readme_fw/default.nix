@@ -147,7 +147,9 @@ let
         headerText = if suffixPart == "" then "Installation" else "Installation: ${formatSuffix suffixPart}";
         contentRendered =
           if isMd then
-            ''<div class="markdown-content">${content}</div>''
+            ''<div class="markdown-content">
+                ${content}
+              </div>''
           else
             ''<pre><code class="language-sh">${content}</code></pre>'';
       in
