@@ -159,8 +159,7 @@ let
           </summary>
         ${contentRendered}
         </details>
-        <!-- markdownlint-restore -->
-      '';
+        <!-- markdownlint-restore -->'';
     optional = true;
   };
 

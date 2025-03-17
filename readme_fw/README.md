@@ -17,34 +17,33 @@ Example utilisation of the framework
 and here is a relative link: [some file](./.readme_assets/usage.md).
 Notice how you can follow it both from the source file for this section (being [description.md](./.readme_assets/description.md)), and from the compiled README.md.
 // One thing it can't do is link up, but I argue that's a bad idea anyways.
-
 <!-- markdownlint-disable -->
 <details>
-	<summary>
-		<h2>Installation: Linux Debian</h2>
-	</summary>
+  <summary>
+    <h2>Installation: Linux Debian</h2>
+  </summary>
 <pre><code class="language-sh">nix build</code></pre>
 </details>
 <!-- markdownlint-restore -->
 
-
 <!-- markdownlint-disable -->
 <details>
-	<summary>
-		<h2>Installation: Windows</h2>
-	</summary>
+  <summary>
+    <h2>Installation: Windows</h2>
+  </summary>
 Tough luck
 </details>
 <!-- markdownlint-restore -->
 
-
 <!-- markdownlint-disable -->
 <details>
-	<summary>
-		<h2>Installation</h2>
-	</summary>
-<pre><code class="language-sh">nix build # these days most often it ends up being just that.
-#Q: could potentially expand to parsing for `./installation.md` too, if found, include that instead, so that I could nest installation instructions for other OSes</code></pre>
+  <summary>
+    <h2>Installation</h2>
+  </summary>
+```sh
+nix build
+```
+these days most often it ends up being just that.
 </details>
 <!-- markdownlint-restore -->
 
