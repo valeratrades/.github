@@ -61,7 +61,7 @@ let
   #  # builtins.trace ''TRACE: ${path}: "${out}"''
   #  out;
 
-	  processSection =
+  processSection =
     {
       path, # Regex pattern for file(s) relative to root
       optional ? false, # Whether to warn on missing source for a section
@@ -73,18 +73,17 @@ let
       baseName = builtins.baseNameOf path;
       searchDir = "${rootStr}/${dirPath}";
       dirExists = builtins.pathExists searchDir;
-      
+
       # List all files in the directory, filter for pattern matches
-      allFiles = if dirExists then builtins.attrNames (builtins.readDir searchDir) else [];
-      matchingFiles = builtins.filter (name: 
-        builtins.match baseName name != null
-      ) allFiles;
-      
+      allFiles = if dirExists then builtins.attrNames (builtins.readDir searchDir) else [ ];
+      matchingFiles = builtins.filter (name: builtins.match baseName name != null) allFiles;
+
       # Full paths relative to root
       matchingPaths = map (name: "${dirPath}/${name}") matchingFiles;
-      
+
       # Process a single file
-      processSingleFile = singlePath:
+      processSingleFile =
+        singlePath:
         let
           fullPath = "${rootStr}/${singlePath}";
           exists = builtins.pathExists fullPath;
@@ -97,24 +96,19 @@ let
             else
               builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
 
-          contentWithPaths = if pkgs.lib.hasSuffix ".md" singlePath && exists 
-                            then builtins.replaceStrings [ "(./" ] [ "(./.readme_assets/" ] rawContent 
-                            else rawContent;
+          contentWithPaths = if pkgs.lib.hasSuffix ".md" singlePath && exists then builtins.replaceStrings [ "(./" ] [ "(./.readme_assets/" ] rawContent else rawContent;
 
           out = (if (exists || !optional) then (transform contentWithPaths singlePath) + "\n" else contentWithPaths);
         in
         out;
-      
+
       # Process all matching files
       fileContents = builtins.map processSingleFile matchingPaths;
-      
+
       # Combine all contents
       combinedContent = builtins.concatStringsSep "" fileContents;
     in
-      if matchingFiles == [] && optional then
-        ""
-      else
-        combinedContent;
+    if matchingFiles == [ ] && optional then "" else combinedContent;
 
   warning_out = processSection {
     path = ".readme_assets/warning.md";
@@ -127,39 +121,43 @@ let
   };
 
   installation_out = processSection {
-    path = ".readme_assets/installation(-[a-zA-Z0-9\\-]+)?\.sh";
-		  transform = content: path:
+    path = ".readme_assets/installation(-[a-zA-Z0-9\\-]+)?\\.(sh|md)";
+    transform =
+      content: path:
       let
         fileName = builtins.baseNameOf path;
-        matchResult = builtins.match "installation(-(.+))?\.sh" fileName;
-        hasSuffix = builtins.length matchResult > 1 && builtins.elemAt matchResult 1 != null;
-        
-        suffixPart = if hasSuffix then builtins.elemAt matchResult 1 else "";
-        titleCaseWord = word: 
-          if builtins.stringLength word == 0 
-          then "" 
-          else pkgs.lib.toUpper (builtins.substring 0 1 word) + 
-               builtins.substring 1 (builtins.stringLength word) word;
-               
-        formatSuffix = suffix:
+        fileExt = builtins.elemAt (pkgs.lib.splitString "." fileName) 1;
+        isMd = fileExt == "md";
+
+        basePart = builtins.substring (builtins.stringLength "installation") (builtins.stringLength fileName - builtins.stringLength "installation" - builtins.stringLength ".${fileExt}") fileName;
+
+        hasSuffix = pkgs.lib.hasPrefix "-" basePart;
+        suffixPart = if hasSuffix then pkgs.lib.removePrefix "-" basePart else "";
+        titleCaseWord = word: if builtins.stringLength word == 0 then "" else pkgs.lib.toUpper (builtins.substring 0 1 word) + builtins.substring 1 (builtins.stringLength word) word;
+
+        formatSuffix =
+          suffix:
           let
             segments = pkgs.lib.splitString "-" suffix;
             titledSegments = map titleCaseWord segments;
             concat_back = builtins.concatStringsSep " " titledSegments;
           in
-            concat_back;
-            
-        headerText = if suffixPart == "" 
-                     then "Installation" 
-                     else "Installation: ${formatSuffix suffixPart}";
-      in ''
+          concat_back;
+
+        headerText = if suffixPart == "" then "Installation" else "Installation: ${formatSuffix suffixPart}";
+        contentRendered =
+          if isMd then
+            content
+          else
+            ''<pre><code class="language-sh">${content}</code></pre>'';
+      in
+      ''
         <!-- markdownlint-disable -->
         <details>
           <summary>
             <h2>${headerText}</h2>
           </summary>
-          <pre>
-            <code class="language-bash">${content}</code></pre>
+        ${contentRendered}
         </details>
         <!-- markdownlint-restore -->
       '';
