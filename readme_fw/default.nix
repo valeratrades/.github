@@ -147,7 +147,7 @@ let
         headerText = if suffixPart == "" then "Installation" else "Installation: ${formatSuffix suffixPart}";
         contentRendered =
           if isMd then
-            ''<pre><code class="markdown-content">${content}</div></pre>'' #HACK: github doesn't support `markdown-content` class. So this is semantically correct but effectively useless.
+            ''<div class="markdown-content">${content}</div>'' #HACK: github doesn't support `markdown-content` class. So this is semantically correct but effectively useless.
           else
             ''<pre><code class="language-sh">${content}</code></pre>'';
       in
