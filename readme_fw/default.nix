@@ -147,7 +147,7 @@ let
         headerText = if suffixPart == "" then "Installation" else "Installation: ${formatSuffix suffixPart}";
         contentRendered =
           if isMd then
-            content
+            ''<div class="markdown-content">${content}</div>''
           else
             ''<pre><code class="language-sh">${content}</code></pre>'';
       in
@@ -155,7 +155,7 @@ let
         <!-- markdownlint-disable -->
         <details>
           <summary>
-            <h2>${headerText}</h2>
+            <h3>${headerText}</h3>
           </summary>
         ${contentRendered}
         </details>

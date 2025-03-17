@@ -20,7 +20,7 @@ Notice how you can follow it both from the source file for this section (being [
 <!-- markdownlint-disable -->
 <details>
   <summary>
-    <h2>Installation: Linux Debian</h2>
+    <h3>Installation: Linux Debian</h3>
   </summary>
 <pre><code class="language-sh">nix build</code></pre>
 </details>
@@ -28,20 +28,20 @@ Notice how you can follow it both from the source file for this section (being [
 <!-- markdownlint-disable -->
 <details>
   <summary>
-    <h2>Installation: Windows</h2>
+    <h3>Installation: Windows</h3>
   </summary>
-Tough luck
+<div class="markdown-content">Tough luck</div>
 </details>
 <!-- markdownlint-restore -->
 <!-- markdownlint-disable -->
 <details>
   <summary>
-    <h2>Installation</h2>
+    <h3>Installation</h3>
   </summary>
-```sh
+<div class="markdown-content">```sh
 nix build
 ```
-these days most often it ends up being just that.
+these days most often it ends up being just that.</div>
 </details>
 <!-- markdownlint-restore -->
 
