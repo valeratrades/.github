@@ -7,7 +7,7 @@
 ![Minimum Supported Rust Version](https://img.shields.io/badge/nightly-1.86+-ab6000.svg)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/readme-fw.svg?color=fc8d62&logo=rust" height="20" style=flat-square>](https://crates.io/crates/readme-fw)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs&style=flat-square" height="20">](https://docs.rs/readme-fw)
-![Lines Of Code](https://img.shields.io/badge/LoC-241-lightblue)
+![Lines Of Code](https://img.shields.io/badge/LoC-239-lightblue)
 <br>
 [<img alt="ci errors" src="https://img.shields.io/github/actions/workflow/status/valeratrades/readme-fw/errors.yml?branch=master&style=for-the-badge&style=flat-square&label=errors&labelColor=420d09" height="20">](https://github.com/valeratrades/readme-fw/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->
 [<img alt="ci warnings" src="https://img.shields.io/github/actions/workflow/status/valeratrades/readme-fw/warnings.yml?branch=master&style=for-the-badge&style=flat-square&label=warnings&labelColor=d16002" height="20">](https://github.com/valeratrades/readme-fw/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->
@@ -30,9 +30,7 @@ Notice how you can follow it both from the source file for this section (being [
   <summary>
     <h3>Installation: Windows</h3>
   </summary>
-<div class="markdown-content">
-                Tough luck
-              </div>
+<pre><code class="markdown-content">Tough luck</div></pre>
 </details>
 <!-- markdownlint-restore -->
 <!-- markdownlint-disable -->
@@ -40,12 +38,10 @@ Notice how you can follow it both from the source file for this section (being [
   <summary>
     <h3>Installation</h3>
   </summary>
-<div class="markdown-content">
-                ```sh
+<pre><code class="markdown-content">```sh
 nix build
 ```
-these days most often it ends up being just that.
-              </div>
+these days most often it ends up being just that.</div></pre>
 </details>
 <!-- markdownlint-restore -->
 
