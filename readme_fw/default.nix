@@ -34,37 +34,92 @@ let
   badges_out = badgeModule.combineBadges badges;
 
   # Helper function to process markdown sections with standardized handling
-  processSection =
+  #processSection =
+  #  {
+  #    path, # Path to the file relative to root
+  #    optional ? false, # Whether to warn on missing source for a section
+  #    transform ? (content: content), # Function that transforms content (including adding any prefix/suffix)
+  #  }:
+  #  let
+  #    fullPath = "${rootStr}/${path}";
+  #    exists = builtins.pathExists fullPath;
+  #
+  #    # Handle missing files based on `optional` flag
+  #    rawContent =
+  #      if exists then
+  #        pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath) # TODO: remove **all** trailing newlines, not just one
+  #      else if optional then
+  #        ""
+  #      else
+  #        builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
+  #
+  #    # Apply path replacement automatically for markdown files //TODO: extend to support `typ` too
+  #    contentWithPaths = if pkgs.lib.hasSuffix ".md" path && exists then builtins.replaceStrings [ "(./" ] [ "(./.readme_assets/" ] rawContent else rawContent;
+  #
+  #    out = (if (exists || !optional) then (transform contentWithPaths) + "\n" else contentWithPaths);
+  #  in
+  #  # builtins.trace ''TRACE: ${path}: "${out}"''
+  #  out;
+
+	  processSection =
     {
-      path, # Path to the file relative to root
+      path, # Regex pattern for file(s) relative to root
       optional ? false, # Whether to warn on missing source for a section
-      transform ? (content: content), # Function that transforms content (including adding any prefix/suffix)
+      transform ? (content: actualPath: content), # Function that transforms content, taking actual path
     }:
     let
-      fullPath = "${rootStr}/${path}";
-      exists = builtins.pathExists fullPath;
+      # Get directory and pattern from path
+      dirPath = builtins.dirOf path;
+      baseName = builtins.baseNameOf path;
+      searchDir = "${rootStr}/${dirPath}";
+      dirExists = builtins.pathExists searchDir;
+      
+      # List all files in the directory, filter for pattern matches
+      allFiles = if dirExists then builtins.attrNames (builtins.readDir searchDir) else [];
+      matchingFiles = builtins.filter (name: 
+        builtins.match baseName name != null
+      ) allFiles;
+      
+      # Full paths relative to root
+      matchingPaths = map (name: "${dirPath}/${name}") matchingFiles;
+      
+      # Process a single file
+      processSingleFile = singlePath:
+        let
+          fullPath = "${rootStr}/${singlePath}";
+          exists = builtins.pathExists fullPath;
 
-      # Handle missing files based on `optional` flag
-      rawContent =
-        if exists then
-          pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath) # TODO: remove **all** trailing newlines, not just one
-        else if optional then
-          ""
-        else
-          builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
+          rawContent =
+            if exists then
+              pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath)
+            else if optional then
+              ""
+            else
+              builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
 
-      # Apply path replacement automatically for markdown files //TODO: extend to support `typ` too
-      contentWithPaths = if pkgs.lib.hasSuffix ".md" path && exists then builtins.replaceStrings [ "(./" ] [ "(./.readme_assets/" ] rawContent else rawContent;
+          contentWithPaths = if pkgs.lib.hasSuffix ".md" singlePath && exists 
+                            then builtins.replaceStrings [ "(./" ] [ "(./.readme_assets/" ] rawContent 
+                            else rawContent;
 
-      out = (if (exists || !optional) then (transform contentWithPaths) + "\n" else contentWithPaths);
+          out = (if (exists || !optional) then (transform contentWithPaths singlePath) + "\n" else contentWithPaths);
+        in
+        out;
+      
+      # Process all matching files
+      fileContents = builtins.map processSingleFile matchingPaths;
+      
+      # Combine all contents
+      combinedContent = builtins.concatStringsSep "" fileContents;
     in
-    # builtins.trace ''TRACE: ${path}: "${out}"''
-    out;
+      if matchingFiles == [] && optional then
+        ""
+      else
+        combinedContent;
 
   warning_out = processSection {
     path = ".readme_assets/warning.md";
     optional = true;
-    transform = (content: if content == "" then "" else "\n> [!WARNING]\n" + builtins.concatStringsSep " \\\n" (map (line: "> " + line) (pkgs.lib.splitString "\n" content)));
+    transform = (content: path: if content == "" then "" else "\n> [!WARNING]\n" + builtins.concatStringsSep " \\\n" (map (line: "> " + line) (pkgs.lib.splitString "\n" content)));
   };
 
   description_out = processSection {
@@ -72,30 +127,39 @@ let
   };
 
   installation_out = processSection {
-    path = ".readme_assets/installation.md";
-    transform = (
-      sh: ''
+    path = ".readme_assets/installation(-[a-zA-Z]+)?\.sh";
+		transform = content: path:
+      let
+        fileName = builtins.baseNameOf path;
+        matchResult = builtins.match "installation(-([a-zA-Z]+))?\.sh" fileName;
+        hasSuffix = builtins.length matchResult > 1 && builtins.elemAt matchResult 1 != null;
+        
+        suffixPart = if hasSuffix then builtins.elemAt matchResult 1 else "";
+        cleanSuffix = pkgs.lib.removePrefix "-" suffixPart;
+        headerText = if suffixPart == "" 
+                     then "Installation" 
+                     else "Installation: ${pkgs.lib.toUpper (builtins.substring 0 1 cleanSuffix)}${builtins.substring 1 (builtins.stringLength cleanSuffix) cleanSuffix}";
+      in ''
 
         <!-- markdownlint-disable -->
         <details>
           <summary>
-            <h2>Installation</h2>
+            <h2>${headerText}</h2>
           </summary>
           <pre>
-            <code class="language-md">${sh}</code></pre>
+            <code class="language-sh">${content}</code></pre>
         </details>
         <!-- markdownlint-restore -->
-      ''
-    ); # `${sh}` is not padded with newlines, as that physically pads the rendered code block
+      '';
     optional = true;
   };
 
   usage_out = processSection {
     path = ".readme_assets/usage.md";
     transform = (
-      md: ''
+      content: path: ''
         ## Usage
-        ${md}
+        ${content}
       ''
     );
   };
