@@ -72,7 +72,7 @@ let
   };
 
   installation_out = processSection {
-    path = ".readme_assets/installation.sh";
+    path = ".readme_assets/installation.md";
     transform = (
       sh: ''
 
@@ -82,7 +82,7 @@ let
             <h2>Installation</h2>
           </summary>
           <pre>
-            <code class="language-sh">${sh}</code></pre>
+            <code class="language-md">${sh}</code></pre>
         </details>
         <!-- markdownlint-restore -->
       ''
