@@ -7,7 +7,7 @@
 ![Minimum Supported Rust Version](https://img.shields.io/badge/nightly-1.86+-ab6000.svg)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/readme-fw.svg?color=fc8d62&logo=rust" height="20" style=flat-square>](https://crates.io/crates/readme-fw)
 [<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs&style=flat-square" height="20">](https://docs.rs/readme-fw)
-![Lines Of Code](https://img.shields.io/badge/LoC-232-lightblue)
+![Lines Of Code](https://img.shields.io/badge/LoC-243-lightblue)
 <br>
 [<img alt="ci errors" src="https://img.shields.io/github/actions/workflow/status/valeratrades/readme-fw/errors.yml?branch=master&style=for-the-badge&style=flat-square&label=errors&labelColor=420d09" height="20">](https://github.com/valeratrades/readme-fw/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->
 [<img alt="ci warnings" src="https://img.shields.io/github/actions/workflow/status/valeratrades/readme-fw/warnings.yml?branch=master&style=for-the-badge&style=flat-square&label=warnings&labelColor=d16002" height="20">](https://github.com/valeratrades/readme-fw/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->
@@ -17,6 +17,16 @@ Example utilisation of the framework
 and here is a relative link: [some file](./.readme_assets/usage.md).
 Notice how you can follow it both from the source file for this section (being [description.md](./.readme_assets/description.md)), and from the compiled README.md.
 // One thing it can't do is link up, but I argue that's a bad idea anyways.
+<!-- markdownlint-disable -->
+<details>
+  <summary>
+    <h2>Installation: Linux Debian</h2>
+  </summary>
+  <pre>
+    <code class="language-bash">nix build</code></pre>
+</details>
+<!-- markdownlint-restore -->
+
 <!-- markdownlint-disable -->
 <details>
   <summary>

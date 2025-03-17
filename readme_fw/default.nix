@@ -127,27 +127,39 @@ let
   };
 
   installation_out = processSection {
-    path = ".readme_assets/installation(-[a-zA-Z]+)?\.sh";
-		transform = content: path:
+    path = ".readme_assets/installation(-[a-zA-Z0-9\\-]+)?\.sh";
+		  transform = content: path:
       let
         fileName = builtins.baseNameOf path;
-        matchResult = builtins.match "installation(-([a-zA-Z]+))?\.sh" fileName;
+        matchResult = builtins.match "installation(-(.+))?\.sh" fileName;
         hasSuffix = builtins.length matchResult > 1 && builtins.elemAt matchResult 1 != null;
         
         suffixPart = if hasSuffix then builtins.elemAt matchResult 1 else "";
-        cleanSuffix = pkgs.lib.removePrefix "-" suffixPart;
+        titleCaseWord = word: 
+          if builtins.stringLength word == 0 
+          then "" 
+          else pkgs.lib.toUpper (builtins.substring 0 1 word) + 
+               builtins.substring 1 (builtins.stringLength word) word;
+               
+        formatSuffix = suffix:
+          let
+            segments = pkgs.lib.splitString "-" suffix;
+            titledSegments = map titleCaseWord segments;
+            concat_back = builtins.concatStringsSep " " titledSegments;
+          in
+            concat_back;
+            
         headerText = if suffixPart == "" 
                      then "Installation" 
-                     else "Installation: ${pkgs.lib.toUpper (builtins.substring 0 1 cleanSuffix)}${builtins.substring 1 (builtins.stringLength cleanSuffix) cleanSuffix}";
+                     else "Installation: ${formatSuffix suffixPart}";
       in ''
-
         <!-- markdownlint-disable -->
         <details>
           <summary>
             <h2>${headerText}</h2>
           </summary>
           <pre>
-            <code class="language-sh">${content}</code></pre>
+            <code class="language-bash">${content}</code></pre>
         </details>
         <!-- markdownlint-restore -->
       '';
