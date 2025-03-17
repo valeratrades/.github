@@ -16,6 +16,7 @@
 - REF: during development or post-factum, simple way to mark a link with additional information
 - DUP | DUPLICATION: similar to SAFETY and LOOP: explains why duplication can't/shouldn't be abstracted
 - DEP | DEPENDS | RELIES: list things that must be true for the logical block to function as expected
+- BOTTLENECK: Can be placed on the section with the most expensive operation. In many cases can explain entire structure of a function on its own.
 
 #### temporary
 When developing it's nice to be able to annotate approximate desired map of the next steps
