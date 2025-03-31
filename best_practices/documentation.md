@@ -31,6 +31,15 @@ As such, have
 - OUTDATED: could mark an old doc comment with it. Or rather anything outside of the main control flow, validity of which is not checked automatically, and which I notice is not fresh.
 
 
+## inline comments
+match on size of the thing you want to comment on:
+- scope ->                   right above that scope.
+- newline-delimited block -> right above that block.
+- line ->                    append the comment to the same line.
+
+NB: do not over-comment. It is a great crime. Only explain "why", almost never "what" (unless you're doing something inherently unreadable with no way to fix the readability).
+
+
 ### ARCHITECTURE.md
 [Must have]<https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html>)
 Sections in architecture.md should write out their invariants [invariants](<https://matklad.github.io/2023/10/06/what-is-an-invariant.html>)
