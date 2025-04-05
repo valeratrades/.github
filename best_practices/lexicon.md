@@ -24,3 +24,10 @@ and now "settings" refers to all the things the projects refers to at runtime to
 ### or/xor
 Any instance of "or" in text signify what's commonly written as "or/and" and is pure logical `OR`. Common utilisation of "or" to mean `XOR` is always written as, well, "xor".
 Similarly, "OR"/"XOR" could be used interchangeably with lowercase versions; only reason for utilisation being ease of visual parsing.
+
+### ex/eg/ie
+For starters: don't add punctuation around these abbreviations. They are written exactly as follows: "ex", "eg", "ie"; without punctuation inside or after (like conventional {"ex:", "e.g.,", etc} writing assumes).
+Now meaning: "eg" and "ie" are special cases of "ex", only providing additional information on scope:
+- "ie": exactly one example
+- "eg": more than one example
+- "ex": no information on total number of possible examples
