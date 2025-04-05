@@ -1,3 +1,4 @@
+#TODO: move the GHA generator up to the root level
 {
   description = ''
 # Nix parts collection
