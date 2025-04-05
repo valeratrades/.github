@@ -13,7 +13,8 @@ let
     rust-miri = ./rust/miri.nix;
     rust-clippy = ./rust/clippy.nix;
     rust-machete = ./rust/machete.nix;
-    rust-sort = ./rust/sort.nix;
+    rust-sorted = ./rust/sorted.nix;
+    rust-sorted-derives = ./rust/sorted_derives.nix;
 		#,}}}
     
 		# go {{{

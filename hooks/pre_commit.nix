@@ -26,6 +26,11 @@ let
       fd Cargo.toml --type f --exec git add {} \;
     fi
 
+    current_branch=$(git symbolic-ref --short HEAD)
+    if [ -f "Cargo.toml" ] && [ "$current_branch" == "release"* ]; then
+      cargo sort-derives # don't know how much it will change, so can't add it to the commit automatically. And as such desirable to reduce frequency with which it is run.
+    fi
+
     rm commit >/dev/null 2>&1 # remove commit message text file if it exists
     echo "Ran custom pre-commit hooks"
   '';
