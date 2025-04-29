@@ -5,7 +5,8 @@ pkgs,
 	(pkgs.formats.toml { }).generate "" {
 	formatter = {
 		nix = {
-			command = "nixpkgs-fmt";
+			command = "nixfmt";
+			options = ["-w" "200"];
 			includes = ["*.nix"];
 		};
 		rust = {
