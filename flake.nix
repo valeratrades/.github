@@ -12,6 +12,7 @@ See individual component descriptions in their respective directories.'';
       hooks = (import ./hooks { inherit nixpkgs; }).description;
       readme-fw = (import ./readme_fw { inherit nixpkgs; }).description;
       workflows = (import ./.github/workflows/nix-parts { inherit nixpkgs; }).description;
+			utils = (import ./utils).description;
     };
   in {
     description = ''
@@ -32,5 +33,6 @@ ${parts.workflows}
     hooks = import ./hooks;
     readme-fw = import ./readme_fw;
 		ci = import ./.github/workflows/nix-parts;
+		utils = import ./utils;
   };
 }
