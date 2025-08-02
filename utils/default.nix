@@ -3,7 +3,7 @@ let
     if !isSecret then s else
     let len = builtins.stringLength s;
     in if len < 8 then "[REDACTED]"
-       else (builtins.substring 0 2 s) + ".." + (builtins.substring (len - 2) 2 s);
+       else (builtins.substring 0 2 s) + "..." + (builtins.substring (len - 2) 2 s);
 
   maskSh = ''
     _mask() {
