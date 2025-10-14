@@ -20,6 +20,10 @@ Because that would be a minor code duplication. And the standard to mirror the p
 "env" here refers to anything and everything we pick up from environment
 and now "settings" refers to all the things the projects refers to at runtime to determine behavior. They can be constructed from either one or a combination of "config", "args", "env". They can have their state changed at runtime, and even persist it over to the next session, overriding values in "config"
 
+### updates
+flags are only passed ones at startup; config can be changed while the program is running, and it is often expected that it would pick that change up; settings can be changed during runtime by the user, or by the program itself, while not modifying the config. Note that if config gets changed, that change gets priority over settings cache.
+
+
 ## Words in text
 ### or/xor
 Any instance of "or" in text signify what's commonly written as "or/and" and is pure logical `OR`. Common utilisation of "or" to mean `XOR` is always written as, well, "xor".
