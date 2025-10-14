@@ -5,9 +5,10 @@ pkgs,
 	(pkgs.formats.toml { }).generate "" {
 	formatter = {
 		nix = {
-			command = "nixfmt";
-			options = ["-w" "200"];
+			command = "nixpkgs-fmt"; # deprecated, but I still __by far__ prefer it over all the newer alternatives
 			includes = ["*.nix"];
+			#command = "nixfmt"; # formats with vertical bloat
+			#options = ["-w" "200"];
 		};
 		rust = {
 			command = "rustfmt";
