@@ -23,6 +23,7 @@ and now "settings" refers to all the things the projects refers to at runtime to
 ### updates
 flags are only passed ones at startup; config can be changed while the program is running, and it is often expected that it would pick that change up; settings can be changed during runtime by the user, or by the program itself, while not modifying the config. Note that if config gets changed, that change gets priority over settings cache.
 
+note also that having `Settings{ config, ... }` is fine, as things that go into config vs those that don't are semantically different anyways
 
 ## Words in text
 ### or/xor
