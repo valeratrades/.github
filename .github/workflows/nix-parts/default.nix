@@ -24,12 +24,29 @@ let
 		#,}}}
   };
 
-	importFile = path: {
-    name = path;
-    value = if path == "rust-tests"
-            then import (builtins.getAttr path files) { inherit lastSupportedVersion; }
-            else import (builtins.getAttr path files);
-  };
+	importFile = jobSpec:
+    let
+      # Support both string and attrset (for passing args)
+      jobName = if builtins.isString jobSpec then jobSpec else jobSpec.name;
+      jobArgs = if builtins.isString jobSpec then {} else (jobSpec.args or {});
+
+      # Build the arguments to pass to the imported file
+      args = if jobName == "rust-tests"
+             then { inherit lastSupportedVersion; } // jobArgs
+             else jobArgs;
+
+      # Import the file
+      imported = import (builtins.getAttr jobName files);
+
+      # Check if it's a function (needs to be called) or already a value (attrset)
+      value = if builtins.isFunction imported
+              then imported args
+              else imported;
+    in
+    {
+      name = jobName;
+      inherit value;
+    };
 
   constructJobs = paths: 
     builtins.listToAttrs (map importFile paths);
