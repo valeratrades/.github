@@ -34,12 +34,18 @@ let
       args = if jobName == "rust-tests"
              then { inherit lastSupportedVersion; } // jobArgs
              else jobArgs;
+
+      # Import the file
+      imported = import (builtins.getAttr jobName files);
+
+      # Check if it's a function (needs to be called) or already a value (attrset)
+      value = if builtins.isFunction imported
+              then imported args
+              else imported;
     in
     {
       name = jobName;
-      value = if args == {}
-              then import (builtins.getAttr jobName files)
-              else import (builtins.getAttr jobName files) args;
+      inherit value;
     };
 
   constructJobs = paths: 
