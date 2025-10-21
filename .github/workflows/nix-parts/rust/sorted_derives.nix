@@ -1,6 +1,5 @@
 {
 	name = "Sorted Derives";
-	description = "Assert derives are sorted";
 	runs-on = "ubuntu-latest";
 	steps = [
 		{ uses = "actions/checkout@v4"; }
@@ -10,7 +9,7 @@
 			"with".tool = "cargo-sort-derives";
 		}
 		{
-			name = "Check if Cargo.toml is sorted";
+			name = "Assert derives are sorted";
 			run = ''
 				cargo sort-derives --check
 				exit_code=$?
