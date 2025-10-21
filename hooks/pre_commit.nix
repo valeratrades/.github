@@ -23,6 +23,7 @@ let
 
     if [ -f "Cargo.toml" ]; then
       cargo sort --workspace --grouped
+			cargo sort-derives
       fd Cargo.toml --type f --exec git add {} \;
     fi
 
