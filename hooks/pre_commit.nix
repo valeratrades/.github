@@ -22,7 +22,7 @@ let
     fi
 
     if [ -f "Cargo.toml" ]; then
-      cargo sort --workspace --grouped --order package,lints,dependencies,dev-dependencies,build-dependencies,features
+      cargo sort --workspace --grouped
       fd Cargo.toml --type f --exec git add {} \;
     fi
 
