@@ -121,7 +121,7 @@ let
   };
 
   installation_out = processSection {
-    path = ".readme_assets/installation(-[a-zA-Z0-9\\-]+)?\\.(sh|md)";
+    path = ".readme_assets/(installation|install)(-[a-zA-Z0-9\\-]+)?\\.(sh|md)";
     transform =
       content: path:
       let
