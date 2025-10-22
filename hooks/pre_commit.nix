@@ -7,7 +7,7 @@ let
       echo "Copying project's toml config to examples/"
       mkdir -p ./examples
 
-      if [ -f "$config_dir" ]; then
+      if [ -f "$config_filepath" ]; then
         cp -f "$config_filepath" ./examples/config.toml
       else
         [ -d ./examples/config ] || cp -r "$config_dir" ./examples/config
