@@ -1,13 +1,8 @@
 { lastSupportedVersion ? null }:
 let
-	# Warn if lastSupportedVersion is not provided
-	_ = if lastSupportedVersion == null then
-		builtins.trace "WARNING: lastSupportedVersion not provided for rust-tests. Matrix will only contain 'nightly'."
-		null
-	else null;
-
 	rustcVersions = if lastSupportedVersion == null then
-		[ "nightly" ]
+		builtins.trace "WARNING: lastSupportedVersion not provided for rust-tests. Matrix will only contain 'nightly'."
+			[ "nightly" ]
 	else
 		[
 			"nightly"
