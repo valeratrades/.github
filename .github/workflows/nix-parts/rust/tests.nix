@@ -28,6 +28,10 @@ in
       "with".toolchain = "\${{matrix.rust}}";
     }
     {
+      name = "Install mold";
+      uses = "rui314/setup-mold@v1";
+    }
+    {
       # test this works
       name = "Set RUSTFLAGS for release branch";
       run = "echo \"RUSTFLAGS=-Dwarnings\" >> $GITHUB_ENV";

@@ -7,6 +7,10 @@
   steps = [
     { uses = "actions/checkout@v4"; }
     { uses = "dtolnay/rust-toolchain@clippy"; }
+    {
+      name = "Install mold";
+      uses = "rui314/setup-mold@v1";
+    }
 		{
 			name = "Download modified by pre-ci Cargo.toml files";
 			uses = "actions/download-artifact@v4";
