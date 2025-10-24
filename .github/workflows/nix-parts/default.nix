@@ -1,4 +1,4 @@
-{ pkgs, lastSupportedVersion, jobsErrors, jobsWarnings }:
+{ pkgs, lastSupportedVersion ? null, jobsErrors, jobsWarnings }:
 let
   files = {
 		# shared {{{
@@ -32,7 +32,7 @@ let
 
       # Build the arguments to pass to the imported file
       args = if jobName == "rust-tests"
-             then { inherit lastSupportedVersion; } // jobArgs
+             then { lastSupportedVersion = lastSupportedVersion; } // jobArgs
              else jobArgs;
 
       # Import the file

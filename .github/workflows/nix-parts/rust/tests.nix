@@ -1,9 +1,18 @@
-{ lastSupportedVersion }:
+{ lastSupportedVersion ? null }:
 let
-	rustcVersions = [
-		"nightly"
-		"${lastSupportedVersion}"
-	];
+	# Warn if lastSupportedVersion is not provided
+	_ = if lastSupportedVersion == null then
+		builtins.trace "WARNING: lastSupportedVersion not provided for rust-tests. Matrix will only contain 'nightly'."
+		null
+	else null;
+
+	rustcVersions = if lastSupportedVersion == null then
+		[ "nightly" ]
+	else
+		[
+			"nightly"
+			"${lastSupportedVersion}"
+		];
 in
 {
   name = "Rust \${{matrix.rust}}";
