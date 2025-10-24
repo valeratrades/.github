@@ -96,7 +96,12 @@ let
             else
               builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
 
-          contentWithPaths = if pkgs.lib.hasSuffix ".md" singlePath && exists then builtins.replaceStrings [ "(./" ] [ "(./.readme_assets/" ] rawContent else rawContent;
+          contentWithPaths = if pkgs.lib.hasSuffix ".md" singlePath && exists then
+            builtins.replaceStrings
+              [ "(./" "(../" ]
+              [ "(./.readme_assets/" "(./" ]
+              rawContent
+          else rawContent;
 
           out = (if (exists || !optional) then (transform contentWithPaths singlePath) + "\n" else contentWithPaths);
         in
