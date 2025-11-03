@@ -14,6 +14,8 @@
 #! nix in toolchain
 #! nix ``
 #! nix --command sh -c ``cargo -Zscript -q "$0" "$@"``
+
+edition = "2024"
 ---
 
 use std::{
