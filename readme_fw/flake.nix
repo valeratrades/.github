@@ -43,6 +43,7 @@
       in
       {
         devShells.default = pkgs.mkShell {
+          buildInputs = [ pkgs.typst pkgs.pandoc ];
           shellHook = ''
             cp -f ${readme} ./README.md
           '';

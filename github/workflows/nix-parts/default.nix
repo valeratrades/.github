@@ -1,4 +1,4 @@
-{ pkgs, lastSupportedVersion ? null, jobsErrors, jobsWarnings }:
+{ pkgs, lastSupportedVersion ? null, jobsErrors, jobsWarnings, hookPre ? {} }:
 let
   files = {
 		# shared {{{
@@ -39,9 +39,25 @@ let
       imported = import (builtins.getAttr jobName files);
 
       # Check if it's a function (needs to be called) or already a value (attrset)
-      value = if builtins.isFunction imported
-              then imported args
-              else imported;
+      baseValue = if builtins.isFunction imported
+                  then imported args
+                  else imported;
+
+      # Apply hookPre if specified for this job
+      value = if builtins.hasAttr jobName hookPre
+              then
+                let
+                  # Get the list of pre-hook commands for this job
+                  preHookCmds = builtins.getAttr jobName hookPre;
+
+                  # Convert each string command to a step attrset
+                  preHookSteps = map (cmd: { run = cmd; }) preHookCmds;
+
+                  # Prepend pre-hook steps to existing steps
+                  modifiedSteps = preHookSteps ++ baseValue.steps;
+                in
+                baseValue // { steps = modifiedSteps; }
+              else baseValue;
     in
     {
       name = jobName;
@@ -60,7 +76,7 @@ let
   };
 in
 {
-	#TODO!!!!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
+	#TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
 	#Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
   errors = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {

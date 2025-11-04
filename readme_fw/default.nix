@@ -1,4 +1,4 @@
-#TODO: allow all `.md` files to be written as `.typ` instead.
+# Supports both `.md` and `.typ` file sources
 {
   pkgs,
   rootDir,
@@ -87,16 +87,30 @@ let
         let
           fullPath = "${rootStr}/${singlePath}";
           exists = builtins.pathExists fullPath;
+          isTyp = pkgs.lib.hasSuffix ".typ" singlePath;
+          isMd = pkgs.lib.hasSuffix ".md" singlePath;
+
+          # For .typ files, compile to markdown using pandoc (which can read typst)
+          typstContent = if isTyp && exists then
+            let
+              typFile = builtins.path { path = fullPath; };
+            in
+            builtins.readFile (pkgs.runCommand "typst-to-markdown" { buildInputs = [ pkgs.pandoc ]; } ''
+              pandoc -f typst -t markdown ${typFile} -o $out
+            '')
+          else "";
 
           rawContent =
-            if exists then
+            if isTyp && exists then
+              typstContent
+            else if exists then
               pkgs.lib.removeSuffix "\n" (builtins.readFile fullPath)
             else if optional then
               ""
             else
               builtins.trace "WARNING: ${toString fullPath} is missing" "TODO";
 
-          contentWithPaths = if pkgs.lib.hasSuffix ".md" singlePath && exists then
+          contentWithPaths = if isMd && exists then
             builtins.replaceStrings
               [ "(./" "(../" ]
               [ "(./.readme_assets/" "(./" ]
@@ -116,23 +130,24 @@ let
     if matchingFiles == [ ] && optional then "" else combinedContent;
 
   warning_out = processSection {
-    path = ".readme_assets/warning.md";
+    path = ".readme_assets/warning\\.(md|typ)";
     optional = true;
     transform = (content: path: if content == "" then "" else "\n> [!WARNING]\n" + builtins.concatStringsSep " \\\n" (map (line: "> " + line) (pkgs.lib.splitString "\n" content)));
   };
 
   description_out = processSection {
-    path = ".readme_assets/description.md";
+    path = ".readme_assets/description\\.(md|typ)";
   };
 
   installation_out = processSection {
-    path = ".readme_assets/(installation|install)(-[a-zA-Z0-9\\-]+)?\\.(sh|md)";
+    path = ".readme_assets/(installation|install)(-[a-zA-Z0-9\\-]+)?\\.(sh|md|typ)";
     transform =
       content: path:
       let
         fileName = builtins.baseNameOf path;
         fileExt = builtins.elemAt (pkgs.lib.splitString "." fileName) 1;
         isMd = fileExt == "md";
+        isTyp = fileExt == "typ";
 
         basePart = builtins.substring (builtins.stringLength "installation") (builtins.stringLength fileName - builtins.stringLength "installation" - builtins.stringLength ".${fileExt}") fileName;
 
@@ -151,7 +166,7 @@ let
 
         headerText = if suffixPart == "" then "Installation" else "Installation: ${formatSuffix suffixPart}";
         contentRendered =
-          if isMd then
+          if isMd || isTyp then
             ''<div class="markdown-content">${content}</div>'' #HACK: github doesn't support `markdown-content` class. So this is semantically correct but effectively useless.
           else
             ''<pre><code class="language-sh">${content}</code></pre>'';
@@ -169,7 +184,7 @@ let
   };
 
   usage_out = processSection {
-    path = ".readme_assets/usage.md";
+    path = ".readme_assets/usage\\.(md|typ)";
     transform = (
       content: path: ''
         ## Usage
@@ -189,7 +204,7 @@ let
   '';
 
   other_out = processSection {
-    path = ".readme_assets/other.md";
+    path = ".readme_assets/other\\.(md|typ)";
     optional = true;
   };
 
