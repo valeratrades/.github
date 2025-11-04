@@ -14,7 +14,7 @@
 		}
 		{ run = "cargo miri setup"; }
 		{
-			run = "cargo miri test";
+			run = "cargo miri test --lib --bin"; # normally, `--lib` and `--bin` is exactly what's needed in 99% os cases. If ever run into needing different ones, - add optional flag setting with these as default
 			env.MIRIFLAGS = "-Zmiri-strict-provenance";
 		}
 	];
