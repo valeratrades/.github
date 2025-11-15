@@ -8,6 +8,18 @@
       uses = "actions/checkout@v4";
     }
     {
+      name = "Check for loc_gist_token secret";
+      run = ''
+        if [ -z "\${{ secrets.loc_gist_token }}" ]; then
+          echo "::error::Secret 'loc_gist_token' is not set for this repository."
+          echo "::error::To fix this, run one of the following commands:"
+          echo "::error::  1. For this repo only: gh secret set loc_gist_token --repo $GITHUB_REPOSITORY --body YOUR_TOKEN"
+          echo "::error::  2. For all repos: https://github.com/valeratrades/nix/tree/e4338bf5943d7403b949a8e079f9073987d9cd68/home/scripts/shared_github_secrets.bash"
+          exit 1
+        fi
+      '';
+    }
+    {
       name = "Install tokei";
       run = "cargo install tokei";
     }
@@ -35,7 +47,7 @@
       name = "Update gist";
       uses = "exuanbo/actions-deploy-gist@v1";
       "with" = {
-        token = "\${{ secrets.GITHUB_LOC_GIST }}";
+        token = "\${{ secrets.loc_gist_token }}";
         gist_id = gistId;
         file_path = "\${{ steps.count.outputs.pname }}-loc.json";
       };
