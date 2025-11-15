@@ -3,14 +3,8 @@
   rootDir,
   pname,
   lastSupportedVersion,
+  gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb",
 }: let
-  loc = builtins.fromJSON (builtins.readFile (pkgs.runCommand "tokei-output" {
-      nativeBuildInputs = [pkgs.tokei pkgs.jq];
-    } ''
-      cd ${rootDir}
-      tokei --output json | jq '.Total.code' > $out
-    ''));
-
   badges = {
     msrv = ''![Minimum Supported Rust Version](https://img.shields.io/badge/${lastSupportedVersion}+-ab6000.svg)'';
 
@@ -18,7 +12,9 @@
 
     docs_rs = ''[<img alt="docs.rs" src="https://img.shields.io/badge/docs.rs-66c2a5?style=for-the-badge&labelColor=555555&logo=docs.rs&style=flat-square" height="20">](https://docs.rs/${pname})'';
 
-    loc = ''![Lines Of Code](https://img.shields.io/badge/LoC-${toString loc}-lightblue)'';
+    # Dynamic LOC badge - fetches from GitHub gist updated by workflow
+    # Each project gets its own file in the shared gist: ${pname}-loc.json
+    loc = ''![Lines Of Code](https://img.shields.io/endpoint?url=https://gist.githubusercontent.com/valeratrades/${gistId}/raw/${pname}-loc.json)'';
 
     # note that it is possible to remove all references to `master` and have it automatically use the current branch. But that would require running them on `on.push.branches: [**]`.
     ci = ''      <br>

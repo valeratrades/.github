@@ -1,11 +1,12 @@
-{ pkgs, lastSupportedVersion ? null, jobsErrors, jobsWarnings, hookPre ? {} }:
+{ pkgs, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb" }:
 let
   files = {
 		# shared {{{
     base = ./shared/base.nix;
     tokei = ./shared/tokei.nix;
+    loc-badge = ./shared/loc-badge.nix;
 		#,}}}
-    
+
 		# rust {{{
     rust-base = ./rust/base.nix;
 		rust-tests = ./rust/tests.nix;
@@ -16,7 +17,7 @@ let
     rust-sorted = ./rust/sorted.nix;
     rust-sorted-derives = ./rust/sorted_derives.nix;
 		#,}}}
-    
+
 		# go {{{
     go-tests = ./go/tests.nix;
     go-gocritic = ./go/gocritic.nix;
@@ -33,6 +34,8 @@ let
       # Build the arguments to pass to the imported file
       args = if jobName == "rust-tests"
              then { lastSupportedVersion = lastSupportedVersion; } // jobArgs
+             else if jobName == "loc-badge"
+             then { inherit gistId; } // jobArgs
              else jobArgs;
 
       # Import the file
@@ -92,6 +95,13 @@ in
       permissions = (import files.base).permissions;
 			env = (import files.rust-base).env;
       jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsWarnings);
+    }
+  );
+  other = (pkgs.formats.yaml { }).generate "" (
+    pkgs.lib.recursiveUpdate base {
+      name = "Other";
+      permissions = (import files.base).permissions;
+      jobs = constructJobs jobsOther;
     }
   );
 }
