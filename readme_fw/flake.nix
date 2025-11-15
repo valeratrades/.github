@@ -40,12 +40,29 @@
             "ci"
           ];
         };
+
+        # Generate GitHub Actions workflows
+        workflows = import ../github/workflows/nix-parts {
+          inherit pkgs;
+          lastSupportedVersion = "nightly-1.86";
+          jobsErrors = [ ];  # Add your error jobs here
+          jobsWarnings = [ ];  # Add your warning jobs here
+          jobsOther = [ "loc-badge" ];  # LOC badge updater
+        };
       in
       {
+        packages = {
+          inherit workflows;
+        };
+
         devShells.default = pkgs.mkShell {
           buildInputs = [ pkgs.typst pkgs.pandoc ];
           shellHook = ''
             cp -f ${readme} ./README.md
+
+            # Generate workflows
+            mkdir -p .github/workflows
+            cp -f ${workflows.other} .github/workflows/other.yml
           '';
         };
       }

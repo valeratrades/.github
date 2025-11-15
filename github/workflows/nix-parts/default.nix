@@ -1,4 +1,33 @@
-{ pkgs, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb" }:
+args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb" }:
+
+# If called with just nixpkgs (for flake description), return description attribute
+if nixpkgs != null && pkgs == null then {
+  description = ''
+GitHub Actions workflow generator for Nix projects.
+
+Usage:
+```nix
+workflows = import ./github/workflows/nix-parts {
+  inherit pkgs;
+  lastSupportedVersion = "nightly-1.86";
+  jobsErrors = [ "rust-tests" "rust-doc" ];
+  jobsWarnings = [ "rust-clippy" "rust-machete" ];
+  jobsOther = [ "loc-badge" ];  # Optional: includes LOC badge updater
+};
+```
+
+Then symlink the generated workflows:
+```bash
+ln -sf ''${workflows.errors} .github/workflows/errors.yml
+ln -sf ''${workflows.warnings} .github/workflows/warnings.yml
+ln -sf ''${workflows.other} .github/workflows/other.yml
+```
+
+Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
+'';
+} else
+
+# Otherwise, generate workflows
 let
   files = {
 		# shared {{{
@@ -89,6 +118,7 @@ in
       jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsErrors);
     }
   );
+
   warnings = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Warnings";
@@ -97,6 +127,7 @@ in
       jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsWarnings);
     }
   );
+
   other = (pkgs.formats.yaml { }).generate "" (
     pkgs.lib.recursiveUpdate base {
       name = "Other";

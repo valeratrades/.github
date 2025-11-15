@@ -29,15 +29,15 @@
     }
     {
       name = "Display generated JSON";
-      run = "cat ${{ steps.count.outputs.pname }}-loc.json";
+      run = "cat \${{ steps.count.outputs.pname }}-loc.json";
     }
     {
       name = "Update gist";
       uses = "exuanbo/actions-deploy-gist@v1";
       "with" = {
-        token = "${{ secrets.GITHUB_LOC_GIST }}";
+        token = "\${{ secrets.GITHUB_LOC_GIST }}";
         gist_id = gistId;
-        file_path = "${{ steps.count.outputs.pname }}-loc.json";
+        file_path = "\${{ steps.count.outputs.pname }}-loc.json";
       };
     }
   ];
