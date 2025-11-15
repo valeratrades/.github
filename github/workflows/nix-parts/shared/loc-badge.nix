@@ -10,7 +10,7 @@
     {
       name = "Check for loc_gist_token secret";
       run = ''
-        if [ -z "\${{ secrets.loc_gist_token }}" ]; then
+        if [ -z '\${{ secrets.loc_gist_token }}' ]; then
           echo "::error::Secret 'loc_gist_token' is not set for this repository."
           echo "::error::To fix this, run one of the following commands:"
           echo "::error::  1. For this repo only: gh secret set loc_gist_token --repo $GITHUB_REPOSITORY --body YOUR_TOKEN"
