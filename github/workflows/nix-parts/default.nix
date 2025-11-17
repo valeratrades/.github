@@ -106,33 +106,41 @@ let
       workflow_dispatch = { };
     };
   };
+  workflows = {
+    #TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
+    #Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
+    errors = (pkgs.formats.yaml { }).generate "" (
+      pkgs.lib.recursiveUpdate base {
+        name = "Errors";
+        permissions = (import files.base).permissions;
+        env = (import files.rust-base).env;
+        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsErrors);
+      }
+    );
+
+    warnings = (pkgs.formats.yaml { }).generate "" (
+      pkgs.lib.recursiveUpdate base {
+        name = "Warnings";
+        permissions = (import files.base).permissions;
+        env = (import files.rust-base).env;
+        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsWarnings);
+      }
+    );
+
+    other = (pkgs.formats.yaml { }).generate "" (
+      pkgs.lib.recursiveUpdate base {
+        name = "Other";
+        permissions = (import files.base).permissions;
+        jobs = constructJobs jobsOther;
+      }
+    );
+  };
 in
-{
-	#TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
-	#Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
-  errors = (pkgs.formats.yaml { }).generate "" (
-    pkgs.lib.recursiveUpdate base {
-      name = "Errors";
-      permissions = (import files.base).permissions;
-      env = (import files.rust-base).env;
-      jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsErrors);
-    }
-  );
-
-  warnings = (pkgs.formats.yaml { }).generate "" (
-    pkgs.lib.recursiveUpdate base {
-      name = "Warnings";
-      permissions = (import files.base).permissions;
-			env = (import files.rust-base).env;
-      jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsWarnings);
-    }
-  );
-
-  other = (pkgs.formats.yaml { }).generate "" (
-    pkgs.lib.recursiveUpdate base {
-      name = "Other";
-      permissions = (import files.base).permissions;
-      jobs = constructJobs jobsOther;
-    }
-  );
+workflows // {
+  shellHook = ''
+    mkdir -p ./.github/workflows
+    cp -f ${workflows.errors} ./.github/workflows/errors.yml
+    cp -f ${workflows.warnings} ./.github/workflows/warnings.yml
+    cp -f ${workflows.other} ./.github/workflows/other.yml
+  '';
 }
