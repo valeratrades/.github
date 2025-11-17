@@ -1,14 +1,27 @@
 { pkgs, pname }:
 let
   script = ''
-    config_filepath="''${HOME}/.config/${pname}.toml"
+    config_filepath_nix="''${HOME}/.config/${pname}.nix"
+    config_filepath_toml="''${HOME}/.config/${pname}.toml"
     config_dir="''${HOME}/.config/${pname}"
-    if [ -f "$config_filepath" ] || [ -d "$config_dir" ]; then
+
+    # .nix takes priority over .toml
+    if [ -f "$config_filepath_nix" ]; then
+      echo "Copying project's nix config to examples/"
+      mkdir -p ./examples
+      cp -f "$config_filepath_nix" ./examples/config.nix
+      git add examples/
+
+      if [ $? -ne 0 ]; then
+        echo "Failed to copy project's nix config to examples"
+        exit 1
+      fi
+    elif [ -f "$config_filepath_toml" ] || [ -d "$config_dir" ]; then
       echo "Copying project's toml config to examples/"
       mkdir -p ./examples
 
-      if [ -f "$config_filepath" ]; then
-        cp -f "$config_filepath" ./examples/config.toml
+      if [ -f "$config_filepath_toml" ]; then
+        cp -f "$config_filepath_toml" ./examples/config.toml
       else
         [ -d ./examples/config ] || cp -r "$config_dir" ./examples/config
       fi
