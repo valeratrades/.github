@@ -3,10 +3,10 @@ pkgs,
 ...
 	}:
 	(pkgs.formats.toml { }).generate "" {
+	global = {
+		excludes = ["examples/config.*"];
+	};
 	formatter = {
-		global = {
-			excludes = ["examples/config.*"];
-		};
 		nix = {
 			command = "nixpkgs-fmt"; # deprecated, but I still __by far__ prefer it over all the newer alternatives
 			includes = ["*.nix"];
