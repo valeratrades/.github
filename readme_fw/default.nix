@@ -236,11 +236,11 @@ let
     '';
 in
 pkgs.runCommand "README.md" { } ''
-    cat > $out <<'EOF'
+    cat > $out <<'README_EOF'
 ${warning_out}${builtins.readFile badges_out}
 ${description_out}${installation_out}
 ${usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}
-EOF
+README_EOF
 ''
