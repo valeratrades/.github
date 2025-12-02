@@ -119,17 +119,21 @@ let
           else rawContent;
 
           # Demote all markdown headers by one level (# -> ##, ## -> ###, etc.)
+          # Tracks whether we're inside a ``` code block to avoid demoting comments
           demoteHeadersFn = text:
             let
               lines = pkgs.lib.splitString "\n" text;
-              demoteLine = line:
+              isCodeFence = line: builtins.match "^```.*" line != null;
+              processLines = builtins.foldl' (acc: line:
                 let
-                  # Match lines starting with # (but not inside code blocks - simplified approach)
+                  inCode = if isCodeFence line then !acc.inCode else acc.inCode;
                   isHeader = builtins.match "^(#+) .*" line != null;
+                  newLine = if isHeader && !acc.inCode then "#" + line else line;
                 in
-                if isHeader then "#" + line else line;
+                { inCode = inCode; result = acc.result ++ [ newLine ]; }
+              ) { inCode = false; result = []; } lines;
             in
-            builtins.concatStringsSep "\n" (map demoteLine lines);
+            builtins.concatStringsSep "\n" processLines.result;
 
           contentWithDemotedHeaders = if demoteHeaders then demoteHeadersFn contentWithPaths else contentWithPaths;
 

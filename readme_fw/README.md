@@ -12,25 +12,16 @@
 [<img alt="ci errors" src="https://img.shields.io/github/actions/workflow/status/valeratrades/readme-fw/errors.yml?branch=master&style=for-the-badge&style=flat-square&label=errors&labelColor=420d09" height="20">](https://github.com/valeratrades/readme-fw/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->
 [<img alt="ci warnings" src="https://img.shields.io/github/actions/workflow/status/valeratrades/readme-fw/warnings.yml?branch=master&style=for-the-badge&style=flat-square&label=warnings&labelColor=d16002" height="20">](https://github.com/valeratrades/readme-fw/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->
 
-Example utilisation of the framework
+## Real Header
 
-and here is a relative link: [some file](./.readme_assets/usage.md).
-Notice how you can follow it both from the source file for this section (being [description.md](./.readme_assets/description.md)), and from the compiled README.md.
-// One thing it can't do is link up, but I argue that's a bad idea anyways.
+Some text
 
-### Expected files in `.readme_assets/`
+```bash
+# This is a comment, not a header
+echo "hello"
+```
 
-| Pattern | Required | Description |
-|---------|----------|-------------|
-| `description.(md\|typ)` | Yes | Main project description |
-| `warning.(md\|typ)` | No | Warning banner at top of README |
-| `usage.(sh\|md\|typ)` | Yes | Usage instructions |
-| `installation[-suffix].(sh\|md\|typ)` | No | Installation instructions (collapsible). Suffix becomes title, e.g. `installation-linux.sh` → "Installation: Linux" |
-| `other.(md\|typ)` | No | Additional content (roadmap, etc.) |
-
-### Header demotion
-
-All markdown headers (`#`, `##`, etc.) in source files are automatically demoted by one level when rendered into the final README, to fit under the framework's section headers. Exception: `other.(md|typ)` preserves original header levels.
+### Another Header
 <!-- markdownlint-disable -->
 <details>
 <summary>
