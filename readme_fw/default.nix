@@ -66,6 +66,7 @@ let
       path, # Regex pattern for file(s) relative to root
       optional ? false, # Whether to warn on missing source for a section
       transform ? (content: actualPath: content), # Function that transforms content, taking actual path
+      demoteHeaders ? true, # Whether to demote markdown headers by one level
     }:
     let
       # Get directory and pattern from path
@@ -117,7 +118,22 @@ let
               rawContent
           else rawContent;
 
-          out = (if (exists || !optional) then (transform contentWithPaths singlePath) + "\n" else contentWithPaths);
+          # Demote all markdown headers by one level (# -> ##, ## -> ###, etc.)
+          demoteHeadersFn = text:
+            let
+              lines = pkgs.lib.splitString "\n" text;
+              demoteLine = line:
+                let
+                  # Match lines starting with # (but not inside code blocks - simplified approach)
+                  isHeader = builtins.match "^(#+) .*" line != null;
+                in
+                if isHeader then "#" + line else line;
+            in
+            builtins.concatStringsSep "\n" (map demoteLine lines);
+
+          contentWithDemotedHeaders = if demoteHeaders then demoteHeadersFn contentWithPaths else contentWithPaths;
+
+          out = (if (exists || !optional) then (transform contentWithDemotedHeaders singlePath) + "\n" else contentWithDemotedHeaders);
         in
         out;
 
@@ -221,6 +237,7 @@ ${content}
   other_out = processSection {
     path = ".readme_assets/other\\.(md|typ)";
     optional = true;
+    demoteHeaders = false;
   };
 
   licenses_out =
