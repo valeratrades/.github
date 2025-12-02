@@ -19,38 +19,52 @@ Notice how you can follow it both from the source file for this section (being [
 // One thing it can't do is link up, but I argue that's a bad idea anyways.
 <!-- markdownlint-disable -->
 <details>
-  <summary>
-    <h3>Installation: Linux Debian</h3>
-  </summary>
-<pre><code class="language-sh">nix build</code></pre>
+<summary>
+<h3>Installation: Linux Debian</h3>
+</summary>
+
+```sh
+nix build
+```
+
 </details>
 <!-- markdownlint-restore -->
 <!-- markdownlint-disable -->
 <details>
-  <summary>
-    <h3>Installation: Windows</h3>
-  </summary>
-<div class="markdown-content">Tough luck
-</div>
+<summary>
+<h3>Installation: Windows</h3>
+</summary>
+
+Tough luck
+
+
 </details>
 <!-- markdownlint-restore -->
 <!-- markdownlint-disable -->
 <details>
-  <summary>
-    <h3>Installation</h3>
-  </summary>
-<div class="markdown-content">``` sh
+<summary>
+<h3>Installation</h3>
+</summary>
+
+``` sh
 nix build
 ```
 
 these days most often it ends up being just that.
-</div>
+
+
 </details>
 <!-- markdownlint-restore -->
 
 ## Usage
-```sh
-echo "Hello world"
+```nix
+readme = (readme-fw { inherit pkgs; pname = "readme-fw"; lastSupportedVersion = "nightly-1.86"; rootDir = ./.; licenses = [{ name = "Blue Oak 1.0.0"; outPath = "LICENSE"; }]; badges = [ "msrv" "crates_io" "docs_rs" "loc" "ci" ]; }).combined;
+
+devShells.defaut = pkgs.mkShell {
+	shellHook = ''
+		cp -f ${readme} ./README.md
+	'';
+}
 ```
 
 ## Roadmap

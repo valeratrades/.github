@@ -167,19 +167,23 @@ let
         headerText = if suffixPart == "" then "Installation" else "Installation: ${formatSuffix suffixPart}";
         contentRendered =
           if isMd || isTyp then
-            ''<div class="markdown-content">${content}</div>'' #HACK: github doesn't support `markdown-content` class. So this is semantically correct but effectively useless.
+            content
           else
-            ''<pre><code class="language-sh">${content}</code></pre>'';
+            ''```sh
+${content}
+```'';
       in
       ''
-        <!-- markdownlint-disable -->
-        <details>
-          <summary>
-            <h3>${headerText}</h3>
-          </summary>
-        ${contentRendered}
-        </details>
-        <!-- markdownlint-restore -->'';
+<!-- markdownlint-disable -->
+<details>
+<summary>
+<h3>${headerText}</h3>
+</summary>
+
+${contentRendered}
+
+</details>
+<!-- markdownlint-restore -->'';
     optional = true;
   };
 
