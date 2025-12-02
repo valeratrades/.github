@@ -184,13 +184,24 @@ let
   };
 
   usage_out = processSection {
-    path = ".readme_assets/usage\\.(md|typ)";
-    transform = (
-      content: path: ''
-        ## Usage
-        ${content}
+    path = ".readme_assets/usage\\.(sh|md|typ)";
+    transform =
+      content: path:
+      let
+        fileName = builtins.baseNameOf path;
+        fileExt = builtins.elemAt (pkgs.lib.splitString "." fileName) 1;
+        isSh = fileExt == "sh";
+        contentRendered = if isSh then
+          ''```sh
+${content}
+```''
+        else
+          content;
+      in
       ''
-    );
+        ## Usage
+        ${contentRendered}
+      '';
   };
 
   best_practices_out = pkgs.runCommand "" { } ''

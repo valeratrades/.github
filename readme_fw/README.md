@@ -1,8 +1,8 @@
+
 > [!WARNING]
 > For example \
 > Here I could say that \
 > This is not actively developed
-
 # readme-fw
 ![Minimum Supported Rust Version](https://img.shields.io/badge/nightly-1.86+-ab6000.svg)
 [<img alt="crates.io" src="https://img.shields.io/crates/v/readme-fw.svg?color=fc8d62&logo=rust" height="20" style=flat-square>](https://crates.io/crates/readme-fw)
@@ -49,14 +49,8 @@ these days most often it ends up being just that.
 <!-- markdownlint-restore -->
 
 ## Usage
-```nix
-readme = (readme-fw { inherit pkgs; pname = "readme-fw"; lastSupportedVersion = "nightly-1.86"; rootDir = ./.; licenses = [{ name = "Blue Oak 1.0.0"; outPath = "LICENSE"; }]; badges = [ "msrv" "crates_io" "docs_rs" "loc" "ci" ]; }).combined;
-
-devShells.defaut = pkgs.mkShell {
-	shellHook = ''
-		cp -f ${readme} ./README.md
-	'';
-}
+```sh
+echo "Hello world"
 ```
 
 ## Roadmap
@@ -84,3 +78,4 @@ The `other` section is great for adding random things like that
 for inclusion in this crate by you, as defined in the Apache-2.0 license, shall
 be licensed as above, without any additional terms or conditions.
 </sub>
+
