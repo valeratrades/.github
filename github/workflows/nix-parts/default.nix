@@ -23,7 +23,7 @@ ln -sf ''${workflows.warnings} .github/workflows/warnings.yml
 ln -sf ''${workflows.other} .github/workflows/other.yml
 ```
 
-Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
+Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
 '';
 } else
 
@@ -45,6 +45,7 @@ let
     rust-machete = ./rust/machete.nix;
     rust-sorted = ./rust/sorted.nix;
     rust-sorted-derives = ./rust/sorted_derives.nix;
+    rust-unused-features = ./rust/unused_features.nix;
 		#,}}}
 
 		# go {{{
