@@ -20,4 +20,5 @@
 		gofumpt = import ./golong/gofumpt.nix;
 	};
   gitignore = import ./gitignore.nix;
+  gitLfs = import ./git_lfs.nix;
 }
