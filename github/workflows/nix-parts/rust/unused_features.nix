@@ -2,6 +2,7 @@
   name = "Unused Features";
   runs-on = "ubuntu-latest";
   steps = [
+    { uses = "actions/checkout@v4"; }
     {
       name = "Installation";
       uses = "taiki-e/install-action@v2";
