@@ -1,4 +1,4 @@
-{ lastSupportedVersion ? null }:
+{ lastSupportedVersion ? null, skipPatterns ? [] }:
 let
 	rustcVersions = if lastSupportedVersion == null then
 		builtins.trace "WARNING: lastSupportedVersion not provided for rust-tests. Matrix will only contain 'nightly'."
@@ -8,6 +8,9 @@ let
 			"nightly"
 			"${lastSupportedVersion}"
 		];
+
+	skipArgs = if skipPatterns == [] then ""
+		else " -- " + builtins.concatStringsSep " " (map (p: "--skip ${p}") skipPatterns);
 in
 {
   name = "Rust \${{matrix.rust}}";
@@ -51,7 +54,7 @@ in
     #{ run = "cargo check --locked"; }
     { run = "cargo update"; }
     { run = "cargo check"; }
-    { run = "cargo test"; }
+    { run = "cargo test${skipArgs}"; }
     #TODO: figure this out
     #  if: matrix.os == 'ubuntu' && matrix.rust == 'nightly'
     #- run: cargo run -- expand --manifest-path tests/Cargo.toml > expand.rs && diff tests/lib.expand.rs expand.rs

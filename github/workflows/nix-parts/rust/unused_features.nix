@@ -11,13 +11,13 @@
     {
       name = "Analyze Unused Features";
       run = ''
-        cargo unused-features analyze
+        unused-features analyze
       '';
     }
     {
       name = "Build Report";
       run = ''
-        cargo unused-features build-report --output report.json
+        unused-features build-report --output report.json
       '';
     }
     {

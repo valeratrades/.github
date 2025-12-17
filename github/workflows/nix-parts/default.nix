@@ -11,6 +11,7 @@ workflows = import ./github/workflows/nix-parts {
   inherit pkgs;
   lastSupportedVersion = "nightly-1.86";
   jobsErrors = [ "rust-tests" "rust-doc" ];
+  # Or with args: { name = "rust-tests"; args.skipPatterns = [ "pattern1" "pattern2" ]; }
   jobsWarnings = [ "rust-clippy" "rust-machete" ];
   jobsOther = [ "loc-badge" ];  # Optional: includes LOC badge updater
 };
