@@ -59,6 +59,9 @@ fn main() {
     }
 
     let file_path = &args[1];
+    if !std::path::Path::new(file_path).exists() {
+        return;
+    }
     if let Err(err) = append_custom_code(file_path) {
         eprintln!("Error: {}", err);
         std::process::exit(1);
