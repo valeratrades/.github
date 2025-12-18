@@ -16,8 +16,8 @@
   python = {
     ruff = import ./python/ruff.nix;
   };
-	golong = {
-		gofumpt = import ./golong/gofumpt.nix;
+	golang = {
+		gofumpt = import ./golang/gofumpt.nix;
 	};
   gitignore = import ./gitignore.nix;
   gitLfs = import ./git_lfs.nix;
