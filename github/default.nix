@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"] }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? [] }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -14,6 +14,10 @@ github = v-utils.github {
   jobsWarnings = [ "rust-clippy" "rust-machete" ];
   jobsOther = [ "loc-badge" ];
   langs = [ "rs" ];  # For gitignore generation
+  labels = [
+    { name = "bug"; color = "d73a4a"; }
+    { name = "enhancement"; color = "a2eeef"; }
+  ];
 };
 ```
 
@@ -29,6 +33,9 @@ The shellHook will:
 - Copy workflow files to .github/workflows/
 - Set up git hooks (pre-commit with treefmt integration)
 - Copy gitignore based on specified langs
+
+enabledPackages includes:
+- `git_sync_labels` - sync repository labels with local config
 '';
 } else
 
@@ -39,7 +46,12 @@ let
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId;
   };
 
-  git = import ./git.nix { inherit pkgs; };
+  # Generate label args for git commands
+  labelArgs = builtins.concatStringsSep " " (
+    map (l: "-l '${l.name}:${l.color}'") labels
+  );
+
+  gitCommands = import ./git.nix { inherit pkgs labelArgs; gitScript = ./git.rs; };
 in
 {
   inherit workflows;
@@ -48,7 +60,7 @@ in
   appendCustom = ./append_custom.rs;
   preCommit = import ./pre_commit.nix;
 
-  git = git;
+  inherit (gitCommands) git_sync_labels;
 
   shellHook = ''
     ${workflows.shellHook}
@@ -57,5 +69,5 @@ in
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname; }} ./.git/hooks/custom.sh
   '';
 
-  enabledPackages = [ git ];
+  enabledPackages = [ gitCommands.git_sync_labels ];
 }
