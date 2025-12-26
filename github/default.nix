@@ -37,7 +37,7 @@ The shellHook will:
 - Copy gitignore based on specified langs
 
 enabledPackages includes:
-- `git_sync_labels` - sync repository labels with local config
+- `git_ops` - GitHub operations (sync-labels, etc.)
 '';
 } else
 
@@ -60,7 +60,7 @@ let
     map (l: "-l '${l.name}:${l.color}'") allLabels
   );
 
-  gitCommands = import ./git.nix { inherit pkgs labelArgs; gitScript = ./git.rs; };
+  git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
 in
 {
   inherit workflows;
@@ -69,7 +69,7 @@ in
   appendCustom = ./append_custom.rs;
   preCommit = import ./pre_commit.nix;
 
-  inherit (gitCommands) git_sync_labels;
+  inherit git_ops;
 
   shellHook = ''
     ${workflows.shellHook}
@@ -78,5 +78,5 @@ in
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname; }} ./.git/hooks/custom.sh
   '';
 
-  enabledPackages = [ gitCommands.git_sync_labels ];
+  enabledPackages = [ git_ops ];
 }
