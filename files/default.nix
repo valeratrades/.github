@@ -20,5 +20,5 @@
 		gofumpt = import ./golang/gofumpt.nix;
 	};
   gitignore = import ./gitignore.nix;
-  gitLfs = import ./git_lfs.nix;
+  gitattributes = import ./gitattributes.nix;
 }
