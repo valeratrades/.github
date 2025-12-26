@@ -1,4 +1,3 @@
-#TODO: move the GHA generator up to the root level
 {
   description = ''
 # Nix parts collection
@@ -8,30 +7,34 @@ See individual component descriptions in their respective directories.'';
 
   outputs = { self, nixpkgs }: let
     parts = {
-      files = (import ./files { inherit nixpkgs; }).description;
-      hooks = (import ./hooks { inherit nixpkgs; }).description;
-      readme-fw = (import ./readme_fw { inherit nixpkgs; }).description;
-      workflows = (import ./github/workflows/nix-parts { inherit nixpkgs; }).description;
+      files = (import ./files).description;
+      github = (import ./github { inherit nixpkgs; }).description;
     };
   in {
     description = ''
 ## Files
 ${parts.files}
 
-## Hooks
-${parts.hooks}
+## GitHub
+${parts.github}
 
 ## Readme Framework
-${parts.readme-fw}
-
-## Workflows
-${parts.workflows}
+Generates README.md from .readme_assets/ directory structure.
 '';
 
     files = import ./files;
-    hooks = import ./hooks;
+    github = import ./github;
     readme-fw = import ./readme_fw;
-		ci = import ./github/workflows/nix-parts;
 		utils = import ./utils;
+
+    # Backward compatibility aliases
+    hooks = {
+      description = "DEPRECATED: Use github module instead";
+      appendCustom = ./github/append_custom.rs;
+      treefmt = import ./files/treefmt.nix;
+      preCommit = import ./github/pre_commit.nix;
+    };
+    workflows = import ./github/workflows/nix-parts;
+    ci = import ./github;
   };
 }

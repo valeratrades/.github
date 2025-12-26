@@ -6,6 +6,7 @@
 		agpl = ./licenses/agpl.txt;
   };
   preCommit = import ./pre_commit.nix;
+  treefmt = import ./treefmt.nix;
   rust = {
     rustfmt = import ./rust/rustfmt.nix;
     deny = import ./rust/deny.nix;
