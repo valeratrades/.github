@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? [] }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {} }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -14,10 +14,12 @@ github = v-utils.github {
   jobsWarnings = [ "rust-clippy" "rust-machete" ];
   jobsOther = [ "loc-badge" ];
   langs = [ "rs" ];  # For gitignore generation
-  labels = [
-    { name = "bug"; color = "d73a4a"; }
-    { name = "enhancement"; color = "a2eeef"; }
-  ];
+  labels = {
+    defaults = true;  # Include default labels (default: true)
+    extra = [         # Additional labels
+      { name = "priority:high"; color = "ff0000"; }
+    ];
+  };
 };
 ```
 
@@ -46,9 +48,16 @@ let
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId;
   };
 
+  # Process labels config
+  defaultLabels = import ./labels.nix;
+  labelsConfig = if builtins.isAttrs labels then labels else { extra = labels; };
+  useDefaults = labelsConfig.defaults or true;
+  extraLabels = labelsConfig.extra or [];
+  allLabels = (if useDefaults then defaultLabels else []) ++ extraLabels;
+
   # Generate label args for git commands
   labelArgs = builtins.concatStringsSep " " (
-    map (l: "-l '${l.name}:${l.color}'") labels
+    map (l: "-l '${l.name}:${l.color}'") allLabels
   );
 
   gitCommands = import ./git.nix { inherit pkgs labelArgs; gitScript = ./git.rs; };
