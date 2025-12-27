@@ -12,7 +12,7 @@
   { name = "documentation"; color = "0075ca"; }
   { name = "duplicate"; color = "cfd3d7"; }
   { name = "good first issue"; color = "7057ff"; }
-  { name = "help wanted"; color = "008672"; }
+  { name = "help wanted"; color = "0e8a16"; }
   { name = "invalid"; color = "e4e669"; }
   { name = "question"; color = "d876e3"; }
   { name = "wontfix"; color = "ffffff"; }

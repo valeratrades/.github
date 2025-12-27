@@ -120,7 +120,28 @@ fn prompt_yes_no(question: &str) -> bool {
     matches!(line.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
+fn check_duplicate_colors(labels: &[(String, String)]) -> Result<(), String> {
+    let mut color_to_name: HashMap<String, &str> = HashMap::new();
+    for (name, color) in labels {
+        let color_lower = color.to_lowercase();
+        if let Some(existing) = color_to_name.get(&color_lower) {
+            return Err(format!(
+                "Duplicate color #{}: '{}' and '{}'",
+                color, existing, name
+            ));
+        }
+        color_to_name.insert(color_lower, name);
+    }
+    Ok(())
+}
+
 fn sync_labels(local_labels: Vec<(String, String)>) {
+    // Check for duplicate colors
+    if let Err(e) = check_duplicate_colors(&local_labels) {
+        eprintln!("ERROR: {}", e);
+        std::process::exit(1);
+    }
+
     println!("Fetching remote labels...");
 
     let remote_labels = match get_remote_labels() {
