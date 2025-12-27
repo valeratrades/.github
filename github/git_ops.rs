@@ -45,6 +45,10 @@ enum Commands {
         /// Labels in format "name:color" (color without #), can be repeated
         #[arg(short, long, value_parser = parse_label)]
         label: Vec<(String, String)>,
+
+        /// Check for duplicate or too-similar colors
+        #[arg(long)]
+        check_duplicate_colors: bool,
     },
 }
 
@@ -120,7 +124,51 @@ fn prompt_yes_no(question: &str) -> bool {
     matches!(line.trim().to_lowercase().as_str(), "y" | "yes")
 }
 
+fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
+    let hex = hex.trim_start_matches('#');
+    let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(0);
+    let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(0);
+    let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(0);
+    (r, g, b)
+}
+
+fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f64, f64, f64) {
+    let r = r as f64 / 255.0;
+    let g = g as f64 / 255.0;
+    let b = b as f64 / 255.0;
+
+    let max = r.max(g).max(b);
+    let min = r.min(g).min(b);
+    let l = (max + min) / 2.0;
+
+    if (max - min).abs() < f64::EPSILON {
+        return (0.0, 0.0, l * 100.0);
+    }
+
+    let d = max - min;
+    let s = if l > 0.5 {
+        d / (2.0 - max - min)
+    } else {
+        d / (max + min)
+    };
+
+    let h = if (max - r).abs() < f64::EPSILON {
+        let mut h = (g - b) / d;
+        if g < b {
+            h += 6.0;
+        }
+        h
+    } else if (max - g).abs() < f64::EPSILON {
+        (b - r) / d + 2.0
+    } else {
+        (r - g) / d + 4.0
+    };
+
+    (h * 60.0, s * 100.0, l * 100.0)
+}
+
 fn check_duplicate_colors(labels: &[(String, String)]) -> Result<(), String> {
+    // Check exact duplicates
     let mut color_to_name: HashMap<String, &str> = HashMap::new();
     for (name, color) in labels {
         let color_lower = color.to_lowercase();
@@ -132,14 +180,56 @@ fn check_duplicate_colors(labels: &[(String, String)]) -> Result<(), String> {
         }
         color_to_name.insert(color_lower, name);
     }
+
+    // Convert to HSL and sort by hue
+    let mut hsl_labels: Vec<(&str, &str, f64, f64, f64)> = labels
+        .iter()
+        .map(|(name, color)| {
+            let (r, g, b) = hex_to_rgb(color);
+            let (h, s, l) = rgb_to_hsl(r, g, b);
+            (name.as_str(), color.as_str(), h, s, l)
+        })
+        .collect();
+
+    hsl_labels.sort_by(|a, b| a.2.partial_cmp(&b.2).unwrap());
+
+    // Check adjacent colors (including wrap-around from last to first)
+    for i in 0..hsl_labels.len() {
+        let (name1, color1, h1, s1, l1) = hsl_labels[i];
+        let (name2, color2, h2, s2, l2) = hsl_labels[(i + 1) % hsl_labels.len()];
+
+        // Calculate hue difference (accounting for wrap-around at 360)
+        let h_diff = if i + 1 == hsl_labels.len() {
+            // Wrap-around case
+            (360.0 - h1 + h2).min(h1 - h2 + 360.0).abs()
+        } else {
+            (h2 - h1).abs()
+        };
+
+        if h_diff < 16.0 {
+            let s_diff = (s2 - s1).abs();
+            let l_diff = (l2 - l1).abs();
+            let total_diff = h_diff + s_diff + l_diff;
+
+            if total_diff < 32.0 {
+                return Err(format!(
+                    "Colors too similar (diff={:.1}): '{}' #{} and '{}' #{}",
+                    total_diff, name1, color1, name2, color2
+                ));
+            }
+        }
+    }
+
     Ok(())
 }
 
-fn sync_labels(local_labels: Vec<(String, String)>) {
-    // Check for duplicate colors
-    if let Err(e) = check_duplicate_colors(&local_labels) {
-        eprintln!("ERROR: {}", e);
-        std::process::exit(1);
+fn sync_labels(local_labels: Vec<(String, String)>, check_colors: bool) {
+    if check_colors {
+        if let Err(e) = check_duplicate_colors(&local_labels) {
+            eprintln!("ERROR: {}", e);
+            std::process::exit(1);
+        }
+        println!("Color check passed.");
     }
 
     println!("Fetching remote labels...");
@@ -216,12 +306,12 @@ fn main() {
     let args = Args::parse();
 
     match args.command {
-        Commands::SyncLabels { label } => {
+        Commands::SyncLabels { label, check_duplicate_colors } => {
             if label.is_empty() {
                 eprintln!("ERROR: No labels specified. Use -l 'name:color' to specify labels.");
                 std::process::exit(1);
             }
-            sync_labels(label);
+            sync_labels(label, check_duplicate_colors);
         }
     }
 }
