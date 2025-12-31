@@ -9,6 +9,7 @@ See individual component descriptions in their respective directories.'';
     parts = {
       files = (import ./files).description;
       github = (import ./github { inherit nixpkgs; }).description;
+      rs = (import ./rs { inherit nixpkgs; }).description;
     };
   in {
     description = ''
@@ -18,12 +19,16 @@ ${parts.files}
 ## GitHub
 ${parts.github}
 
+## Rust
+${parts.rs}
+
 ## Readme Framework
 Generates README.md from .readme_assets/ directory structure.
 '';
 
     files = import ./files;
     github = import ./github;
+    rs = import ./rs;
     readme-fw = import ./readme_fw;
 		utils = import ./utils;
 
