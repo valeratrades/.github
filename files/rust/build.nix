@@ -2,11 +2,6 @@
 let
   trimEnd = pkgs.lib.strings.trimWith { end = true; };
 
-  # Module code snippets
-  git_version_code = trimEnd (builtins.readFile ./build/git_version.rs);
-  log_directives_code = trimEnd (builtins.readFile ./build/log_directives.rs);
-  deprecate_code = trimEnd (builtins.readFile ./build/deprecate.rs);
-
   # Check if a module is enabled (handles both string and attrset forms)
   isModule = name: m:
     if builtins.isString m then m == name
@@ -27,6 +22,11 @@ let
   has_git_version = hasModule "git_version";
   has_log_directives = hasModule "log_directives";
   has_deprecate = deprecateVersion != null;
+
+  # Module code snippets (read lazily based on usage)
+  git_version_code = trimEnd (builtins.readFile ./build/git_version.rs);
+  log_directives_code = trimEnd (builtins.readFile ./build/log_directives.rs);
+  deprecate_code = if has_deprecate then trimEnd (builtins.readFile ./build/deprecate.rs) else "";
 
   # Generate the DEPRECATE_AT_VERSION constant if needed
   deprecate_const = if has_deprecate then
