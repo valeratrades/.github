@@ -13,6 +13,7 @@
     toolchain = import ./rust/toolchain.nix;
     config = import ./rust/config.nix;
 		clippy = import ./rust/clippy.nix;
+		build = import ./rust/build.nix;
   };
   python = {
     ruff = import ./python/ruff.nix;
