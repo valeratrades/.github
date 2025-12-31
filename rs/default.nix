@@ -1,4 +1,4 @@
-args@{
+{
   pkgs ? null,
   nixpkgs ? null,
   # config options
@@ -6,7 +6,6 @@ args@{
   # build.rs options
   build ? {},
 }:
-
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
   description = ''
