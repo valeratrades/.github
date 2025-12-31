@@ -1,5 +1,8 @@
-{ pkgs }:
-(pkgs.formats.toml { }).generate "config.toml" {
+{
+  pkgs,
+  cranelift ? true,
+}:
+(pkgs.formats.toml { }).generate "config.toml" ({
   target."x86_64-unknown-linux-gnu".rustflags = [
     "-C" "link-arg=-fuse-ld=mold"
     "--cfg" "tokio_unstable"
@@ -8,9 +11,10 @@
 		"--cfg" "web_sys_unstable_apis"
 		#"--cfg" "procmacro2_semver_exempt"
   ];
+} // (if cranelift then {
 	profile = {
 		rust = {
 			codegen-backend = "cranelift";
 		};
 	};
-}
+} else {}))
