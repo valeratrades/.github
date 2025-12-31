@@ -1,5 +1,6 @@
-{ pkgs, pname }:
+{ pkgs, pname, semverChecks ? false }:
 let
+  semverChecksCmd = if semverChecks then "cargo semver-checks" else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"
     config_filepath_toml="''${HOME}/.config/${pname}.toml"
@@ -38,6 +39,7 @@ let
       cargo sort --workspace --grouped
 			cargo sort-derives
       fd Cargo.toml --type f --exec git add {} \;
+      ${semverChecksCmd}
     fi
 
     rm commit >/dev/null 2>&1 # remove commit message text file if it exists

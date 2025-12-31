@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {} }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {} }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -19,6 +19,9 @@ github = v-utils.github {
     extra = [         # Additional labels
       { name = "priority:high"; color = "ff0000"; }
     ];
+  };
+  preCommit = {
+    semverChecks = true;  # Run cargo-semver-checks (default: false)
   };
 };
 ```
@@ -61,6 +64,9 @@ let
   );
 
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
+
+  # Process preCommit config
+  semverChecks = preCommit.semverChecks or false;
 in
 {
   inherit workflows;
@@ -75,7 +81,7 @@ in
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
-    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname; }} ./.git/hooks/custom.sh
+    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; }} ./.git/hooks/custom.sh
   '';
 
   enabledPackages = [ git_ops ];
