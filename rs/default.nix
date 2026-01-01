@@ -3,6 +3,7 @@
   nixpkgs ? null,
   # config options
   cranelift ? true,
+  deny ? false,
   # build.rs options
   build ? {},
 }:
@@ -16,6 +17,7 @@ Usage:
 rs = v-utils.rs {
   inherit pkgs;
   cranelift = true;  # Enable cranelift backend (default: true)
+  deny = false;      # Copy deny.toml for cargo-deny (default: false)
   build = {
     enable = true;          # Generate build.rs (default: true)
     workspace = {           # Per-directory build.rs modules (default: { "./" = [ "git_version" "log_directives" ]; })
@@ -44,6 +46,7 @@ The shellHook will:
 - Copy rustfmt.toml to ./rustfmt.toml
 - Copy cargo config to ./.cargo/config.toml
 - Copy build.rs to each directory in build.workspace (with write permissions for treefmt)
+- Copy deny.toml to ./deny.toml (if deny = true)
 '';
 } else
 
@@ -63,6 +66,7 @@ let
 
   rustfmtFile = files.rust.rustfmt { inherit pkgs; };
   configFile = files.rust.config { inherit pkgs cranelift; };
+  denyFile = files.rust.deny { inherit pkgs; };
 
   # Generate a build file for each workspace directory with its specific modules
   makeBuildFile = modules: files.rust.build { inherit pkgs modules; };
@@ -77,9 +81,13 @@ let
       install -m 644 ${buildFile} ${normalizePath dir}
     '') workspaceDirs)
   else "";
+
+  denyHook = if deny then ''
+    cp -f ${denyFile} ./deny.toml
+  '' else "";
 in
 {
-  inherit rustfmtFile configFile;
+  inherit rustfmtFile configFile denyFile;
 
   # For backwards compatibility, expose the first build file
   buildFile = makeBuildFile (workspace.${builtins.head workspaceDirs});
@@ -89,5 +97,6 @@ in
     cp -f ${rustfmtFile} ./rustfmt.toml
     cp -f ${configFile} ./.cargo/config.toml
     ${buildHook}
+    ${denyHook}
   '';
 }
