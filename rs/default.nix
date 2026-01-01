@@ -4,6 +4,7 @@
   # config options
   cranelift ? true,
   deny ? false,
+  tracey ? false,
   # build.rs options
   build ? {},
 }:
@@ -18,6 +19,7 @@ rs = v-utils.rs {
   inherit pkgs;
   cranelift = true;  # Enable cranelift backend (default: true)
   deny = false;      # Copy deny.toml for cargo-deny (default: false)
+  tracey = false;    # Enable tracey spec coverage (default: false)
   build = {
     enable = true;          # Generate build.rs (default: true)
     workspace = {           # Per-directory build.rs modules (default: { "./" = [ "git_version" "log_directives" ]; })
@@ -39,6 +41,7 @@ Then use in devShell:
 ```nix
 devShells.default = pkgs.mkShell {
   shellHook = rs.shellHook;
+  packages = [ ... ] ++ rs.enabledPackages;
 };
 ```
 
@@ -47,6 +50,9 @@ The shellHook will:
 - Copy cargo config to ./.cargo/config.toml
 - Copy build.rs to each directory in build.workspace (with write permissions for treefmt)
 - Copy deny.toml to ./deny.toml (if deny = true)
+
+enabledPackages includes:
+- `tracey` - spec coverage tool (if tracey = true)
 '';
 } else
 
@@ -55,6 +61,20 @@ let
 
   buildEnable = build.enable or true;
   workspace = build.workspace or { "./" = [ "git_version" "log_directives" ]; };
+
+  traceyPkg = pkgs.rustPlatform.buildRustPackage {
+    pname = "tracey";
+    version = "1.0.0";
+    src = pkgs.fetchFromGitHub {
+      owner = "bearcove";
+      repo = "tracey";
+      rev = "71cfc9d4115612467b857c868a90cc6d90ed79f7";
+      hash = "sha256-maVPj9/PZzZDEmtMjemeuOCctDrU3JXaBNDwjFTRpks=";
+    };
+    cargoHash = "sha256-pk9Ky+/5P88zAbSJKbUwyvLNFIlHJzwqQCEQrorjlk0=";
+    cargoBuildFlags = [ "-p" "tracey" ];
+    doCheck = false;
+  };
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
   # Handles both "./" and "./cli" and "./cli/" correctly
@@ -99,4 +119,7 @@ in
     ${buildHook}
     ${denyHook}
   '';
+
+  enabledPackages = if tracey then [ traceyPkg ] else [];
+  traceyCheck = tracey;
 }

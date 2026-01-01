@@ -1,6 +1,11 @@
-{ pkgs, pname, semverChecks ? false }:
+{ pkgs, pname, semverChecks ? false, traceyCheck ? false }:
 let
   semverChecksCmd = if semverChecks then "cargo semver-checks" else "";
+  traceyCmd = if traceyCheck then ''
+    if [ -f ".config/tracey/config.kdl" ]; then
+      tracey --check
+    fi
+  '' else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"
     config_filepath_toml="''${HOME}/.config/${pname}.toml"
@@ -40,6 +45,7 @@ let
 			cargo sort-derives
       fd Cargo.toml --type f --exec git add {} \;
       ${semverChecksCmd}
+      ${traceyCmd}
     fi
 
     rm commit >/dev/null 2>&1 # remove commit message text file if it exists
