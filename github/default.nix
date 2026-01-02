@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleCheck ? true }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -81,7 +81,7 @@ in
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
-    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck; }} ./.git/hooks/custom.sh
+    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck styleCheck; }} ./.git/hooks/custom.sh
   '';
 
   enabledPackages = [ git_ops ];

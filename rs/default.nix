@@ -5,6 +5,7 @@
   cranelift ? true,
   deny ? false,
   tracey ? false,
+  style ? true,
   # build.rs options
   build ? {},
 }:
@@ -20,6 +21,7 @@ rs = v-utils.rs {
   cranelift = true;  # Enable cranelift backend (default: true)
   deny = false;      # Copy deny.toml for cargo-deny (default: false)
   tracey = false;    # Enable tracey spec coverage (default: false)
+  style = true;      # Enable rust_style checks in pre-commit (default: true)
   build = {
     enable = true;          # Generate build.rs (default: true)
     workspace = {           # Per-directory build.rs modules (default: { "./" = [ "git_version" "log_directives" ]; })
@@ -53,6 +55,7 @@ The shellHook will:
 
 enabledPackages includes:
 - `tracey` - spec coverage tool (if tracey = true)
+- `rust_style` - custom style linter (if style = true)
 '';
 } else
 
@@ -75,6 +78,12 @@ let
     cargoBuildFlags = [ "-p" "tracey" ];
     doCheck = false;
   };
+
+  # rust_style is a cargo script - wrap it as executable
+  rustStyleScript = ./rust_style.rs;
+  rustStylePkg = pkgs.writeShellScriptBin "rust_style" ''
+    exec ${rustStyleScript} "$@"
+  '';
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
   # Handles both "./" and "./cli" and "./cli/" correctly
@@ -120,6 +129,9 @@ in
     ${denyHook}
   '';
 
-  enabledPackages = if tracey then [ traceyPkg ] else [];
+  enabledPackages =
+    (if tracey then [ traceyPkg ] else []) ++
+    (if style then [ rustStylePkg ] else []);
   traceyCheck = tracey;
+  styleCheck = style;
 }
