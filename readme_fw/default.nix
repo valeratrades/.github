@@ -256,13 +256,28 @@ ${content}
       '';
   };
 
+  # Architecture link - warns if docs/ARCHITECTURE.md doesn't exist
+  architectureExists =
+    let
+      archPath = "${rootStr}/docs/ARCHITECTURE.md";
+    in
+    if builtins.pathExists archPath then
+      true
+    else
+      builtins.trace "WARNING: docs/ARCHITECTURE.md is missing. Consider adding one, following https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html" false;
+
+  architectureSentence = if architectureExists then
+    " For project's architecture, see <a href=\"./docs/ARCHITECTURE.md\">ARCHITECTURE.md</a>."
+  else
+    "";
+
   best_practices_out = pkgs.runCommand "" { } ''
     		cat > $out <<'EOF'
 
     <br>
 
     <sup>
-    	This repository follows <a href="https://github.com/valeratrades/.github/tree/master/best_practices">my best practices</a> and <a href="https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md">Tiger Style</a> (except "proper capitalization for acronyms": (VsrState, not VSRState) and formatting).
+    	This repository follows <a href="https://github.com/valeratrades/.github/tree/master/best_practices">my best practices</a> and <a href="https://github.com/tigerbeetle/tigerbeetle/blob/main/docs/TIGER_STYLE.md">Tiger Style</a> (except "proper capitalization for acronyms": (VsrState, not VSRState) and formatting).${architectureSentence}
     </sup>
   '';
 
@@ -271,18 +286,6 @@ ${content}
     optional = true;
     demoteHeaders = false;
   };
-
-  # Architecture link - warns if docs/ARCHITECTURE.md doesn't exist
-  # Following https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html
-  architecture_out =
-    let
-      archPath = "${rootStr}/docs/ARCHITECTURE.md";
-      exists = builtins.pathExists archPath;
-    in
-    if exists then
-      "If the broader architecture is of interest, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).\n"
-    else
-      builtins.trace "WARNING: docs/ARCHITECTURE.md is missing. Consider adding one following https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html" "";
 
   licenses_out =
     let
@@ -314,7 +317,7 @@ ${content}
   readme = pkgs.runCommand "README.md" { } ''
     cat > $out <<'README_EOF'
 ${warning_out}${builtins.readFile badges_out}
-${description_out}${architecture_out}${installation_out}
+${description_out}${installation_out}
 ${usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}
