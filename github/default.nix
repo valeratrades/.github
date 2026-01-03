@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobsErrors ? [], jobsWarnings ? [], jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleCheck ? true }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleCheck ? true }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -10,10 +10,28 @@ Usage:
 github = v-utils.github {
   inherit pkgs pname;
   lastSupportedVersion = "nightly-1.86";
-  jobsErrors = [ "rust-tests" ];
-  jobsWarnings = [ "rust-clippy" "rust-machete" ];
-  jobsOther = [ "loc-badge" ];
   langs = [ "rs" ];  # For gitignore generation
+
+  # Jobs configuration - new interface
+  jobs = {
+    default = true;  # Enable defaults for all sections (based on langs)
+
+    # Or configure each section individually:
+    errors = {
+      default = true;        # Enable default error jobs for langs
+      augment = [ "rust-miri" ];  # Add extra jobs
+      exclude = [ "rust-doc" ];   # Remove from defaults
+    };
+    warnings = {
+      default = true;
+      augment = [ { name = "rust-clippy"; args.extra = "--all-features"; } ];
+    };
+    other = {
+      default = true;
+      augment = [ "loc-badge" ];
+    };
+  };
+
   labels = {
     defaults = true;  # Include default labels (default: true)
     extra = [         # Additional labels
@@ -46,6 +64,68 @@ enabledPackages includes:
 
 let
   files = import ../files;
+
+  # Default jobs per language
+  defaultJobsByLang = {
+    rs = {
+      errors = [ "rust-tests" ];
+      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" "tokei" ];
+      other = [];
+    };
+    go = {
+      errors = [ "go-tests" ];
+      warnings = [ "go-gocritic" "go-security-audit" ];
+      other = [];
+    };
+  };
+
+  # Default other jobs for all languages
+  defaultOther = [ "loc-badge" ];
+
+  # Compute defaults based on langs
+  computeDefaultsForLangs = category:
+    let
+      langJobs = builtins.concatLists (map (lang:
+        (defaultJobsByLang.${lang}.${category} or [])
+      ) langs);
+    in
+    if category == "other" then defaultOther ++ langJobs else langJobs;
+
+  # Process a jobs section (errors, warnings, or other)
+  # Takes: { default? = bool; augment? = [...]; exclude? = [...]; } or just a list (legacy)
+  processJobsSection = category: sectionConfig: topDefault:
+    let
+      # Handle legacy list format
+      isLegacyList = builtins.isList sectionConfig;
+      section = if isLegacyList then { augment = sectionConfig; } else sectionConfig;
+
+      # Determine if defaults should be enabled for this section
+      sectionDefault = section.default or topDefault;
+
+      # Get base jobs from defaults if enabled
+      baseJobs = if sectionDefault then computeDefaultsForLangs category else [];
+
+      # Get augment and exclude lists
+      augmentJobs = section.augment or [];
+      excludeJobs = section.exclude or [];
+
+      # Helper to get job name from spec (handles both string and attrset)
+      getJobName = spec: if builtins.isString spec then spec else spec.name;
+
+      # Filter out excluded jobs
+      filteredBase = builtins.filter (job:
+        !(builtins.elem (getJobName job) excludeJobs)
+      ) baseJobs;
+    in
+    filteredBase ++ augmentJobs;
+
+  # Get top-level default setting
+  topDefault = jobs.default or false;
+
+  # Process each section
+  jobsErrors = processJobsSection "errors" (jobs.errors or {}) topDefault;
+  jobsWarnings = processJobsSection "warnings" (jobs.warnings or {}) topDefault;
+  jobsOther = processJobsSection "other" (jobs.other or {}) topDefault;
 
   workflows = import ./workflows/nix-parts {
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId;

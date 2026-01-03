@@ -5,7 +5,10 @@ if nixpkgs != null && pkgs == null then {
   description = ''
 GitHub Actions workflow generator for Nix projects.
 
-Usage:
+Note: This module is typically used via github/default.nix which provides
+a higher-level interface with default job selection based on langs.
+
+Direct usage (low-level):
 ```nix
 workflows = import ./github/workflows/nix-parts {
   inherit pkgs;
@@ -13,18 +16,11 @@ workflows = import ./github/workflows/nix-parts {
   jobsErrors = [ "rust-tests" "rust-doc" ];
   # Or with args: { name = "rust-tests"; args.skipPatterns = [ "pattern1" "pattern2" ]; }
   jobsWarnings = [ "rust-clippy" "rust-machete" ];
-  jobsOther = [ "loc-badge" ];  # Optional: includes LOC badge updater
+  jobsOther = [ "loc-badge" ];
 };
 ```
 
-Then symlink the generated workflows:
-```bash
-ln -sf ''${workflows.errors} .github/workflows/errors.yml
-ln -sf ''${workflows.warnings} .github/workflows/warnings.yml
-ln -sf ''${workflows.other} .github/workflows/other.yml
-```
-
-Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
+Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, rust-leptosfmt, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
 '';
 } else
 
