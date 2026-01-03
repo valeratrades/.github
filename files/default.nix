@@ -4,6 +4,7 @@
   licenses = {
     blue_oak = ./licenses/blue_oak.md;
 		agpl = ./licenses/agpl.txt;
+		nsfw = ./licenses/nsfw.txt;
   };
   preCommit = import ./pre_commit.nix;
   treefmt = import ./treefmt.nix;

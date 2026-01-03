@@ -1,11 +1,14 @@
 # Supports both `.md` and `.typ` file sources
+# When `defaults = true`, `licenses` defaults to Blue Oak 1.0.0.
+# Note: `rootDir` cannot have a default - paths resolve at parse time, so caller must always pass `rootDir = ./.;`
 {
   pkgs,
   rootDir,
   pname,
-  licenses,
   badges,
   lastSupportedVersion,
+  defaults ? false,
+  licenses ? (assert defaults; [{ name = "Blue Oak 1.0.0"; outPath = "LICENSE"; }]),
 }:
 
 # Validate inputs
@@ -244,6 +247,18 @@ ${content}
     demoteHeaders = false;
   };
 
+  # Architecture link - warns if docs/ARCHITECTURE.md doesn't exist
+  # Following https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html
+  architecture_out =
+    let
+      archPath = "${rootStr}/docs/ARCHITECTURE.md";
+      exists = builtins.pathExists archPath;
+    in
+    if exists then
+      "If the broader architecture is of interest, see [ARCHITECTURE.md](./docs/ARCHITECTURE.md).\n"
+    else
+      builtins.trace "WARNING: docs/ARCHITECTURE.md is missing. Consider adding one following https://matklad.github.io/2021/02/06/ARCHITECTURE.md.html" "";
+
   licenses_out =
     let
       licenseText =
@@ -274,7 +289,7 @@ in
 pkgs.runCommand "README.md" { } ''
     cat > $out <<'README_EOF'
 ${warning_out}${builtins.readFile badges_out}
-${description_out}${installation_out}
+${description_out}${architecture_out}${installation_out}
 ${usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}
