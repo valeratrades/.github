@@ -65,22 +65,25 @@ enabledPackages includes:
 let
   files = import ../files;
 
+  # Shared defaults across all languages
+  sharedWarnings = [ "tokei" ];
+  sharedOther = [ "loc-badge" ];
+
   # Default jobs per language
   defaultJobsByLang = {
     rs = {
       errors = [ "rust-tests" ];
-      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" "tokei" ];
-      other = [];
+      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" ];
     };
     go = {
       errors = [ "go-tests" ];
       warnings = [ "go-gocritic" "go-security-audit" ];
-      other = [];
+    };
+    py = {
+      errors = [];
+      warnings = [];
     };
   };
-
-  # Default other jobs for all languages
-  defaultOther = [ "loc-badge" ];
 
   # Compute defaults based on langs
   computeDefaultsForLangs = category:
@@ -88,8 +91,11 @@ let
       langJobs = builtins.concatLists (map (lang:
         (defaultJobsByLang.${lang}.${category} or [])
       ) langs);
+      shared = if category == "warnings" then sharedWarnings
+               else if category == "other" then sharedOther
+               else [];
     in
-    if category == "other" then defaultOther ++ langJobs else langJobs;
+    langJobs ++ shared;
 
   # Process a jobs section (errors, warnings, or other)
   # Takes: { default? = bool; augment? = [...]; exclude? = [...]; } or just a list (legacy)
