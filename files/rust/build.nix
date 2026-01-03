@@ -55,9 +55,12 @@ const DEPRECATE_FORCE: bool = ${force};
              ++ (if has_log_directives then [ log_directives_code ] else [])
              ++ (if has_deprecate then [ deprecate_code ] else []);
   body = builtins.concatStringsSep "\n\n" body_parts;
+
+  # deprecate.rs already includes closing brace for main() and helper functions after it
+  # other modules are just code snippets that go inside main()
+  closing_brace = if has_deprecate then "" else "\n}";
 in
 pkgs.writeText "build.rs" ''
 ${use_statement}${deprecate_const}fn main() {
-${body}
-}
+${body}${closing_brace}
 ''
