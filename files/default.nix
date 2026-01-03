@@ -2,9 +2,9 @@
 {
   description = "Project conf files";
   licenses = {
-    blue_oak = ./licenses/blue_oak.md;
-		agpl = ./licenses/agpl.txt;
-		nsfw = ./licenses/nsfw.txt;
+    blue_oak = { name = "Blue Oak 1.0.0"; path = ./licenses/blue_oak.md; };
+    agpl = { name = "AGPL-3.0"; path = ./licenses/agpl.txt; };
+    nsfw = { name = "GLWTS"; path = ./licenses/nsfw.txt; };
   };
   preCommit = import ./pre_commit.nix;
   treefmt = import ./treefmt.nix;

@@ -1,6 +1,10 @@
 # Supports both `.md` and `.typ` file sources
 # When `defaults = true`, `licenses` defaults to Blue Oak 1.0.0.
 # Note: `rootDir` cannot have a default - paths resolve at parse time, so caller must always pass `rootDir = ./.;`
+#
+# licenses: list of { outPath, license }
+#   - outPath: path in the repo where the license will be copied (e.g., "LICENSE")
+#   - license: attrset from files.licenses.* with { name, path }
 {
   pkgs,
   rootDir,
@@ -12,9 +16,10 @@
 }:
 
 let
+  defaultLicense = { name = "Blue Oak 1.0.0"; path = ./licenses/blue_oak.md; };
   licenses' = if licenses != null then licenses else
     assert defaults || throw "licenses is required when defaults = false";
-    [{ name = "Blue Oak 1.0.0"; outPath = "LICENSE"; }];
+    [{ outPath = "LICENSE"; license = defaultLicense; }];
 in
 
 # Validate inputs
@@ -23,7 +28,11 @@ assert builtins.isPath rootDir;
 assert builtins.isString pname && pname != "";
 assert builtins.isList licenses' && licenses' != [ ];
 assert builtins.all (
-  item: builtins.isAttrs item && builtins.hasAttr "name" item && builtins.isString item.name && item.name != "" && builtins.hasAttr "outPath" item && builtins.isString item.outPath && item.outPath != ""
+  item: builtins.isAttrs item
+    && builtins.hasAttr "outPath" item && builtins.isString item.outPath && item.outPath != ""
+    && builtins.hasAttr "license" item && builtins.isAttrs item.license
+    && builtins.hasAttr "name" item.license && builtins.isString item.license.name
+    && builtins.hasAttr "path" item.license
 ) licenses';
 assert builtins.isList badges && badges != [ ];
 assert builtins.all builtins.isString badges;
@@ -270,10 +279,10 @@ ${content}
     let
       licenseText =
         if builtins.length licenses == 1 then
-          ''Licensed under <a href="${(builtins.head licenses).outPath}">${(builtins.head licenses).name}</a>''
+          ''Licensed under <a href="${(builtins.head licenses).outPath}">${(builtins.head licenses).license.name}</a>''
         else
-          "Licensed under either of <a href=\"${(builtins.head licenses).outPath}\">${(builtins.head licenses).name}</a> "
-          + (builtins.concatStringsSep " " (builtins.map (l: ''OR <a href="${l.outPath}">${l.name}</a>'') (builtins.tail licenses)))
+          "Licensed under either of <a href=\"${(builtins.head licenses).outPath}\">${(builtins.head licenses).license.name}</a> "
+          + (builtins.concatStringsSep " " (builtins.map (l: ''OR <a href="${l.outPath}">${l.license.name}</a>'') (builtins.tail licenses)))
           + " at your option.";
     in
     pkgs.runCommand "readme_fw/licenses.md" { } ''
@@ -292,8 +301,8 @@ ${content}
       be licensed as above, without any additional terms or conditions.
       </sub>
     '';
-in
-pkgs.runCommand "README.md" { } ''
+
+  readme = pkgs.runCommand "README.md" { } ''
     cat > $out <<'README_EOF'
 ${warning_out}${builtins.readFile badges_out}
 ${description_out}${architecture_out}${installation_out}
@@ -301,4 +310,19 @@ ${usage_out}${other_out}
 ${builtins.readFile best_practices_out}
 ${builtins.readFile licenses_out}
 README_EOF
-''
+  '';
+
+  shellHook =
+    let
+      licenseCopies = builtins.concatStringsSep "\n" (
+        builtins.map (l: "cp -f ${l.license.path} ./${l.outPath}") licenses
+      );
+    in
+    ''
+      ${licenseCopies}
+      cp -f ${readme} ./README.md
+    '';
+in
+{
+  inherit readme shellHook;
+}
