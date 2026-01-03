@@ -73,7 +73,7 @@ let
   defaultJobsByLang = {
     rs = {
       errors = [ "rust-tests" ];
-      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" ];
+      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" "rust-unused-features" ];
     };
     go = {
       errors = [ "go-tests" ];
