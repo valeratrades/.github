@@ -2,8 +2,8 @@
 # When `defaults = true`, `licenses` defaults to Blue Oak 1.0.0.
 # Note: `rootDir` cannot have a default - paths resolve at parse time, so caller must always pass `rootDir = ./.;`
 #
-# licenses: list of { outPath, license }
-#   - outPath: path in the repo where the license will be copied (e.g., "LICENSE")
+# licenses: list of { outPath?, license }
+#   - outPath: (optional, defaults to "LICENSE") path in the repo where the license will be copied
 #   - license: attrset from files.licenses.* with { name, path }
 {
   pkgs,
@@ -17,28 +17,37 @@
 
 let
   defaultLicense = { name = "Blue Oak 1.0.0"; path = ./licenses/blue_oak.md; };
-  licenses' = if licenses != null then licenses else
+  licensesRaw = if licenses != null then licenses else
     assert defaults || throw "licenses is required when defaults = false";
-    [{ outPath = "LICENSE"; license = defaultLicense; }];
+    [{ license = defaultLicense; }];
+
+  # Normalize licenses: add default outPath if missing
+  licensesNormalized = builtins.map (l: l // { outPath = l.outPath or "LICENSE"; }) licensesRaw;
+
+  # Check for duplicate outPaths
+  outPaths = builtins.map (l: l.outPath) licensesNormalized;
+  uniqueOutPaths = pkgs.lib.unique outPaths;
+  hasDuplicates = builtins.length outPaths != builtins.length uniqueOutPaths;
 in
 
 # Validate inputs
 assert builtins.isAttrs pkgs && builtins.hasAttr "lib" pkgs && builtins.hasAttr "runCommand" pkgs;
 assert builtins.isPath rootDir;
 assert builtins.isString pname && pname != "";
-assert builtins.isList licenses' && licenses' != [ ];
+assert builtins.isList licensesNormalized && licensesNormalized != [ ];
 assert builtins.all (
   item: builtins.isAttrs item
     && builtins.hasAttr "outPath" item && builtins.isString item.outPath && item.outPath != ""
     && builtins.hasAttr "license" item && builtins.isAttrs item.license
     && builtins.hasAttr "name" item.license && builtins.isString item.license.name
     && builtins.hasAttr "path" item.license
-) licenses';
+) licensesNormalized;
+assert !hasDuplicates || throw "licenses have duplicate outPaths: ${builtins.concatStringsSep ", " outPaths}";
 assert builtins.isList badges && badges != [ ];
 assert builtins.all builtins.isString badges;
 
 let
-  licenses = licenses';
+  licenses = licensesNormalized;
   rootStr = pkgs.lib.removeSuffix "/" (toString rootDir);
 
   #Q: theoretically could have this thing right here count the LoC itself. Could be cleaner.
