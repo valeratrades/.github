@@ -1,5 +1,6 @@
+fn git_version() {
 	// Embed git commit hash (fallback to "unknown" if git unavailable, e.g., in Nix sandbox)
-	let git_hash = Command::new("git")
+	let git_hash = std::process::Command::new("git")
 		.args(["rev-parse", "--short", "HEAD"])
 		.output()
 		.ok()
@@ -8,3 +9,4 @@
 		.map(|s| s.trim().to_string())
 		.unwrap_or_else(|| "unknown".to_string());
 	println!("cargo:rustc-env=GIT_HASH={git_hash}");
+}

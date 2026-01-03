@@ -1,7 +1,5 @@
 { pkgs, modules ? [ "git_version" "log_directives" ] }:
 let
-  trimEnd = pkgs.lib.strings.trimWith { end = true; };
-
   # Check if a module is enabled (handles both string and attrset forms)
   isModule = name: m:
     if builtins.isString m then m == name
@@ -11,7 +9,6 @@ let
   hasModule = name: builtins.any (isModule name) modules;
 
   # Get deprecate config if specified
-  # Supports: "deprecate" (string) or { deprecate = { by_version = "..."; force = true; }; }
   getDeprecateConfig =
     let
       isDeprecateString = m: builtins.isString m && m == "deprecate";
@@ -29,10 +26,10 @@ let
   has_log_directives = hasModule "log_directives";
   has_deprecate = deprecateConfig != null;
 
-  # Module code snippets (read lazily based on usage)
-  git_version_code = trimEnd (builtins.readFile ./build/git_version.rs);
-  log_directives_code = trimEnd (builtins.readFile ./build/log_directives.rs);
-  deprecate_code = if has_deprecate then trimEnd (builtins.readFile ./build/deprecate.rs) else "";
+  # Module code (each defines a function with the same name as the module)
+  git_version_code = builtins.readFile ./build/git_version.rs;
+  log_directives_code = builtins.readFile ./build/log_directives.rs;
+  deprecate_code = builtins.readFile ./build/deprecate.rs;
 
   # Generate constants for deprecate module
   deprecate_const = if has_deprecate then
@@ -48,19 +45,23 @@ const DEPRECATE_FORCE: bool = ${force};
 ''
   else "";
 
-  needs_command = has_git_version;
-  use_statement = if needs_command then "use std::process::Command;\n\n" else "";
+  # Collect module codes
+  module_codes = (if has_git_version then [ git_version_code ] else [])
+               ++ (if has_log_directives then [ log_directives_code ] else [])
+               ++ (if has_deprecate then [ deprecate_code ] else []);
 
-  body_parts = (if has_git_version then [ git_version_code ] else [])
-             ++ (if has_log_directives then [ log_directives_code ] else [])
-             ++ (if has_deprecate then [ deprecate_code ] else []);
-  body = builtins.concatStringsSep "\n\n" body_parts;
+  # Collect function calls for main()
+  module_calls = (if has_git_version then [ "git_version();" ] else [])
+               ++ (if has_log_directives then [ "log_directives();" ] else [])
+               ++ (if has_deprecate then [ "deprecate();" ] else []);
 
-  # deprecate.rs already includes closing brace for main() and helper functions after it
-  # other modules are just code snippets that go inside main()
-  closing_brace = if has_deprecate then "" else "\n}";
+  modules_body = builtins.concatStringsSep "\n" module_codes;
+  main_calls = builtins.concatStringsSep "\n\t" module_calls;
 in
 pkgs.writeText "build.rs" ''
-${use_statement}${deprecate_const}fn main() {
-${body}${closing_brace}
+${deprecate_const}fn main() {
+	${main_calls}
+}
+
+${modules_body}
 ''
