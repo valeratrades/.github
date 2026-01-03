@@ -26,7 +26,7 @@ rs = v-utils.rs {
     enable = true;          # Generate build.rs (default: true)
     workspace = {           # Per-directory build.rs modules (default: { "./" = [ "git_version" "log_directives" ]; })
       "./" = [ "git_version" "log_directives" ];
-      "./cli" = [ "git_version" "log_directives" { deprecate = "2.0.0"; } ];
+      "./cli" = [ "git_version" "log_directives" { deprecate = { by_version = "2.0.0"; }; } ];
     };
   };
 };
@@ -37,7 +37,25 @@ build.workspace: Map of directories to their build.rs module lists.
   Available modules:
     - "git_version": Embed GIT_HASH at compile time
     - "log_directives": Embed LOG_DIRECTIVES from .cargo/log_directives
-    - { deprecate = "VERSION"; }: Fail build if #[deprecated] items exist at VERSION
+    - "deprecate": Deprecation enforcement (see below)
+
+  deprecate module:
+    Checks that #[deprecated] items are removed by their specified version.
+    Uses the `since` attribute from each #[deprecated(since = "X.Y.Z")] to determine
+    when an item should be removed. If current package version >= since version, build fails.
+
+    Configuration:
+      - "deprecate"
+          Requires all #[deprecated] to have `since` attribute, errors otherwise.
+
+      - { deprecate = { by_version = "X.Y.Z"; }; }
+          Sets default version for items without `since`. Items with `since` still
+          use their own version.
+
+      - { deprecate = { by_version = "X.Y.Z"; force = true; }; }
+          Rewrites ALL `since` attributes to the target version (adds if missing,
+          replaces if different), then exits. Useful for bumping all deprecation
+          deadlines at once before a release.
 
 Then use in devShell:
 ```nix

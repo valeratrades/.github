@@ -10,27 +10,42 @@ let
 
   hasModule = name: builtins.any (isModule name) modules;
 
-  # Get deprecate version if specified
-  getDeprecateVersion =
+  # Get deprecate config if specified
+  # Supports: "deprecate" (string) or { deprecate = { by_version = "..."; force = true; }; }
+  getDeprecateConfig =
     let
-      deprecateModules = builtins.filter (m: builtins.isAttrs m && builtins.hasAttr "deprecate" m) modules;
+      isDeprecateString = m: builtins.isString m && m == "deprecate";
+      isDeprecateAttr = m: builtins.isAttrs m && builtins.hasAttr "deprecate" m;
+      deprecateModules = builtins.filter (m: isDeprecateString m || isDeprecateAttr m) modules;
     in
     if deprecateModules == [] then null
-    else (builtins.head deprecateModules).deprecate;
+    else
+      let m = builtins.head deprecateModules;
+      in if isDeprecateString m then { by_version = null; force = false; }
+      else { by_version = m.deprecate.by_version or null; force = m.deprecate.force or false; };
 
-  deprecateVersion = getDeprecateVersion;
+  deprecateConfig = getDeprecateConfig;
   has_git_version = hasModule "git_version";
   has_log_directives = hasModule "log_directives";
-  has_deprecate = deprecateVersion != null;
+  has_deprecate = deprecateConfig != null;
 
   # Module code snippets (read lazily based on usage)
   git_version_code = trimEnd (builtins.readFile ./build/git_version.rs);
   log_directives_code = trimEnd (builtins.readFile ./build/log_directives.rs);
   deprecate_code = if has_deprecate then trimEnd (builtins.readFile ./build/deprecate.rs) else "";
 
-  # Generate the DEPRECATE_AT_VERSION constant if needed
+  # Generate constants for deprecate module
   deprecate_const = if has_deprecate then
-    "const DEPRECATE_AT_VERSION: &str = \"${deprecateVersion}\";\n\n"
+    let
+      byVersion = if deprecateConfig.by_version != null
+        then "Some(\"${deprecateConfig.by_version}\")"
+        else "None";
+      force = if deprecateConfig.force then "true" else "false";
+    in ''
+const DEPRECATE_BY_VERSION: Option<&str> = ${byVersion};
+const DEPRECATE_FORCE: bool = ${force};
+
+''
   else "";
 
   needs_command = has_git_version;
