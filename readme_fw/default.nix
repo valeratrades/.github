@@ -16,7 +16,7 @@
 }:
 
 let
-  defaultLicense = { name = "Blue Oak 1.0.0"; path = ./licenses/blue_oak.md; };
+  defaultLicense = { name = "Blue Oak 1.0.0"; path = ../files/licenses/blue_oak.md; };
   licensesRaw = if licenses != null then licenses else
     assert defaults || throw "licenses is required when defaults = false";
     [{ license = defaultLicense; }];
