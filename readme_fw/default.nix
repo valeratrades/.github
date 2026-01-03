@@ -8,21 +8,28 @@
   badges,
   lastSupportedVersion,
   defaults ? false,
-  licenses ? (assert defaults; [{ name = "Blue Oak 1.0.0"; outPath = "LICENSE"; }]),
+  licenses ? null,
 }:
+
+let
+  licenses' = if licenses != null then licenses else
+    assert defaults || throw "licenses is required when defaults = false";
+    [{ name = "Blue Oak 1.0.0"; outPath = "LICENSE"; }];
+in
 
 # Validate inputs
 assert builtins.isAttrs pkgs && builtins.hasAttr "lib" pkgs && builtins.hasAttr "runCommand" pkgs;
 assert builtins.isPath rootDir;
 assert builtins.isString pname && pname != "";
-assert builtins.isList licenses && licenses != [ ];
+assert builtins.isList licenses' && licenses' != [ ];
 assert builtins.all (
   item: builtins.isAttrs item && builtins.hasAttr "name" item && builtins.isString item.name && item.name != "" && builtins.hasAttr "outPath" item && builtins.isString item.outPath && item.outPath != ""
-) licenses;
+) licenses';
 assert builtins.isList badges && badges != [ ];
 assert builtins.all builtins.isString badges;
 
 let
+  licenses = licenses';
   rootStr = pkgs.lib.removeSuffix "/" (toString rootDir);
 
   #Q: theoretically could have this thing right here count the LoC itself. Could be cleaner.
