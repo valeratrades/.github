@@ -115,7 +115,7 @@ let
         cargo = nightlyRust;
       };
     in
-    nightlyPlatform.buildRustPackage {
+    (nightlyPlatform.buildRustPackage {
       pname = "codestyle";
       version = codestyleVersion;
       src = pkgs.fetchCrate {
@@ -125,11 +125,10 @@ let
       };
       cargoHash = "sha256-yzGjLggCr4xBNMAzBvdR2qc9gKO1il0OkCJbpAJSwSg=";
       nativeBuildInputs = [ pkgs.mold ];
+    }).overrideAttrs (old: {
       doCheck = false;
-      # Completely skip check phase - codestyle's integration tests spawn cargo builds
-      # that fail in the nix sandbox due to TMPDIR issues
-      dontCheck = true;
-    };
+      doInstallCheck = false;
+    });
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
   # Handles both "./" and "./cli" and "./cli/" correctly
