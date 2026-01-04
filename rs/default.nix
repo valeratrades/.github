@@ -8,6 +8,8 @@
   style ? {},
   # build.rs options
   build ? {},
+  # rust toolchain package - required to prepend to PATH so nix rust takes precedence over rustup
+  rust,
 }:
 # Normalize style.modules: { instrument = true; loops = false; } -> "--instrument=true --loops=false"
 let
@@ -26,7 +28,7 @@ Rust project configuration module combining rustfmt, cargo config, and build.rs.
 Usage:
 ```nix
 rs = v-utils.rs {
-  inherit pkgs;
+  inherit pkgs rust;  # rust is the nix toolchain package
   cranelift = true;  # Enable cranelift backend (default: true)
   deny = false;      # Copy deny.toml for cargo-deny (default: false)
   tracey = true;     # Enable tracey spec coverage (default: true)
@@ -82,6 +84,7 @@ devShells.default = pkgs.mkShell {
 ```
 
 The shellHook will:
+- Prepend nix rust to PATH so it takes precedence over rustup shims
 - Copy rustfmt.toml to ./rustfmt.toml
 - Copy cargo config to ./.cargo/config.toml
 - Copy build.rs to each directory in build.workspace (with write permissions for treefmt)
@@ -164,6 +167,9 @@ in
   buildFile = makeBuildFile (workspace.${builtins.head workspaceDirs});
 
   shellHook = ''
+    # Prepend nix rust to PATH so it takes precedence over rustup shims in ~/.cargo/bin.
+    # This is critical for trybuild tests which spawn cargo subprocesses.
+    export PATH="${rust}/bin:$PATH"
     mkdir -p ./.cargo
     cp -f ${rustfmtFile} ./rustfmt.toml
     cp -f ${configFile} ./.cargo/config.toml
