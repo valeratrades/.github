@@ -9,7 +9,9 @@ let
   styleCmd = if styleCheck then "rust_style" else "";
   # Nuke .pending-snap files (insta crate snapshots, - must always inline. Otherwise what's the point.)
   nukeSnapsCmd = if nukeSnapsCheck then ''
-    fd -e pending-snap -x rm {} \;
+    for src_dir in $(fd -HI -t d -d 2 '^src$'); do
+      fd -HI -e pending-snap . "$src_dir" -x rm {} \;
+    done
   '' else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"
