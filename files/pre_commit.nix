@@ -1,19 +1,17 @@
-{ pkgs }: {
+{ pkgs, lib ? pkgs.lib }: {
 	src = ./.;
 	hooks = {
 		treefmt = {
 			enable = true;
+			# Override entry to re-stage files after formatting.
+			# This prevents pre-commit from detecting file changes and re-running hooks.
+			entry = lib.mkForce "bash -c 'treefmt --no-cache \"$@\" && git add -u' --";
 			settings = {
-				#BUG: this option does NOTHING
-				fail-on-change = false; # that's GHA's job, pre-commit hooks stricty *do*
+				fail-on-change = false; # GHA's job, pre-commit hooks strictly *do*
 				formatters = with pkgs; [
 					nixpkgs-fmt
 				];
 			};
 		};
-		# fails randomly at times
-		#trim-trailing-whitespace = {
-		#	enable = true;
-		#};
 	};
 }
