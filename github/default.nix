@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleFormat ? true, styleAssert ? false, moduleFlags ? "" }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleFormat ? true, styleAssert ? false, moduleFlags ? "", release ? null, releaseLatest ? null }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -40,7 +40,24 @@ github = v-utils.github {
     ];
   };
   preCommit = {
-    semverChecks = true;  # Run cargo-semver-checks (default: false)
+    semverChecks = true;  # Run cargo-semver-checks (default: true)
+  };
+
+  # Binary releases for cargo-binstall (triggers on v* tags)
+  release = {
+    targets = [ "x86_64-unknown-linux-gnu" "x86_64-apple-darwin" "aarch64-apple-darwin" ];
+    cargoFlags = { "x86_64-pc-windows-msvc" = "--no-default-features"; };
+    aptDeps = [ "libssl-dev" "pkg-config" ];
+  };
+  # OR just use defaults:
+  release = {};
+
+  # Rolling "latest" releases per platform (triggers on branch push)
+  releaseLatest = {
+    platforms = [ "debian" "windows" ];
+    cargoFlags = { windows = "--no-default-features"; };
+    aptDeps = [ "libssl-dev" ];
+    branch = "release";
   };
 };
 ```
@@ -74,7 +91,7 @@ let
   defaultJobsByLang = {
     rs = {
       errors = [ "rust-tests" ];
-      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" "rust-unused-features" ];
+      warnings = [ "rust-doc" "rust-clippy" "rust-machete" "rust-sorted" "rust-sorted-derives" ]; #WAIT: until "rust-unused-features" finally gets --edition 2024 support
     };
     go = {
       errors = [ "go-tests" ];
@@ -135,7 +152,7 @@ let
   jobsOther = processJobsSection "other" (jobs.other or {}) topDefault;
 
   workflows = import ./workflows/nix-parts {
-    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId;
+    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest;
   };
 
   # Process labels config
@@ -156,7 +173,7 @@ let
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
 
   # Process preCommit config
-  semverChecks = preCommit.semverChecks or false;
+  semverChecks = preCommit.semverChecks or true;
 
   labelSyncHook = if labelsEnabled then ''
     ${git_ops}/bin/git_ops sync-labels &

@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb" }:
+args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -21,6 +21,14 @@ workflows = import ./github/workflows/nix-parts {
 ```
 
 Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, rust-leptosfmt, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
+
+Standalone workflows (enabled via attrsets):
+- release = { targets = [...]; cargoFlags = {...}; aptDeps = [...]; }
+    Binary release for cargo-binstall (triggers on v* tags)
+    Default targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin
+- releaseLatest = { platforms = [...]; cargoFlags = {...}; aptDeps = [...]; branch = "release"; }
+    Rolling "latest" releases per platform (triggers on branch push)
+    Available platforms: debian, windows, macos
 '';
 } else
 
@@ -43,6 +51,8 @@ let
     rust-sorted = ./rust/sorted.nix;
     rust-sorted-derives = ./rust/sorted_derives.nix;
     rust-unused-features = ./rust/unused_features.nix;
+    rust-release = ./rust/release.nix;
+    rust-release-latest = ./rust/release-latest.nix;
 		#,}}}
 
 		# go {{{
@@ -104,6 +114,26 @@ let
       workflow_dispatch = { };
     };
   };
+  # Standalone release workflow (binstall-compatible, triggers on v* tags)
+  releaseWorkflow = if release != null then
+    let
+      releaseSpec = import files.rust-release (
+        if builtins.isAttrs release then release else {}
+      );
+    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" ])
+  else null;
+
+  # Rolling "latest" release workflows (per-platform, triggers on branch push)
+  releaseLatestWorkflows = if releaseLatest != null then
+    let
+      spec = import files.rust-release-latest (
+        if builtins.isAttrs releaseLatest then releaseLatest else {}
+      );
+    in builtins.mapAttrs (name: wf:
+      (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" ])
+    ) spec.workflows
+  else {};
+
   workflows = {
     #TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
     #Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
@@ -133,12 +163,28 @@ let
       }
     );
   };
+
+  ensureBinstallScript = ../ensure_binstall_metadata.rs;
+
+  releaseHook = if releaseWorkflow != null then ''
+    cp -f ${releaseWorkflow} ./.github/workflows/release.yml
+    cargo -Zscript -q ${ensureBinstallScript}
+  '' else "";
+
+  releaseLatestHook = builtins.concatStringsSep "\n" (
+    pkgs.lib.mapAttrsToList (name: wf: ''
+      cp -f ${wf} ./.github/workflows/release-${name}.yml
+    '') releaseLatestWorkflows
+  );
 in
 workflows // {
+  inherit releaseWorkflow releaseLatestWorkflows;
   shellHook = ''
     mkdir -p ./.github/workflows
     cp -f ${workflows.errors} ./.github/workflows/errors.yml
     cp -f ${workflows.warnings} ./.github/workflows/warnings.yml
     cp -f ${workflows.other} ./.github/workflows/other.yml
+    ${releaseHook}
+    ${releaseLatestHook}
   '';
 }

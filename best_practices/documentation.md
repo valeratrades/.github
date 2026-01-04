@@ -29,6 +29,7 @@ As such, have
 - MOVE: a special case of TODO, convenient for mapping out architecture changes. Simply says where a thing should be moved to eventually.
 - DEPRECATE: a note to self to get around to deprecating something. Not to be used when native methods for marking something for deprecation are available (like `#[deprecated]` in rust)
 - OUTDATED: could mark an old doc comment with it. Or rather anything outside of the main control flow, validity of which is not checked automatically, and which I notice is not fresh.
+- WAIT: some upstream is broken, - all we are left to do with is wait until they fix it. Could specify `($date)` to re-check it at if you fell like
 
 
 ## inline comments
