@@ -1,4 +1,4 @@
-{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleFormat ? true, styleAssert ? false,
+{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleFormat ? true, styleAssert ? false, moduleFlags ? "",
   # backwards compat
   styleCheck ? null,
 }:
@@ -13,17 +13,20 @@ let
       tracey --check
     fi
   '' else "";
+  # Build codestyle command with module flags
+  # New interface: codestyle rust [--module=bool...] <format|assert> <path>
+  codestyleBase = "codestyle rust ${moduleFlags}";
   # If both format and assert are true: run format and error if it had unfixable issues
   # If only format: run format (auto-fix, don't error on unfixable)
   # If only assert: run assert (error on any violation)
   styleCmd = if actualStyleFormat && actualStyleAssert then ''
-    codestyle format
+    ${codestyleBase} format ./
     if [ $? -ne 0 ]; then
       echo "codestyle: unfixable violations found"
       exit 1
     fi
-  '' else if actualStyleFormat then "codestyle format || true"
-  else if actualStyleAssert then "codestyle assert"
+  '' else if actualStyleFormat then "${codestyleBase} format ./ || true"
+  else if actualStyleAssert then "${codestyleBase} assert ./"
   else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"

@@ -9,6 +9,15 @@
   # build.rs options
   build ? {},
 }:
+# Normalize style.modules: { instrument = true; loops = false; } -> "--instrument=true --loops=false"
+let
+  styleModules = style.modules or {};
+  moduleFlags = builtins.concatStringsSep " " (
+    builtins.attrValues (builtins.mapAttrs (name: value:
+      "--${name}=${if value then "true" else "false"}"
+    ) styleModules)
+  );
+in
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
   description = ''
@@ -24,6 +33,10 @@ rs = v-utils.rs {
   style = {
     format = true;   # Auto-fix style issues in pre-commit (default: true)
     check = false;   # Error on unfixable style issues (default: false)
+    modules = {      # Toggle individual codestyle checks (default: use codestyle defaults)
+      instrument = true;  # Require #[instrument] on async functions (default: false)
+      loops = true;       # Enforce //LOOP comments on endless loops (default: true)
+    };
   };
   build = {
     enable = true;          # Generate build.rs (default: true)
@@ -88,7 +101,7 @@ let
 
   # Package versions - update these when bumping
   traceyVersion = "1.0.0";
-  codestyleVersion = "0.2.0";
+  codestyleVersion = "0.2.1";
 
   traceyPkg = pkgs.rustPlatform.buildRustPackage {
     pname = "tracey";
@@ -120,7 +133,7 @@ let
       src = pkgs.fetchCrate {
         pname = "codestyle";
         version = codestyleVersion;
-        hash = "sha256-W4MjDV2s0w5LuYHyanZJscu72qif+ncePZb01ZnOfJ0=";
+        hash = "sha256-QB5CD8A7kf1c+zTEc4GZlRDEUq4yWO3N67BL+RKgUg8=";
       };
       cargoHash = "sha256-xLzrpeDIyhg2vGAs3doMV0eNgYJVnfF//fGiOmLww7I=";
       doCheck = false;
@@ -162,7 +175,7 @@ let
   styleEnabled = styleFormat || styleAssert;
 in
 {
-  inherit rustfmtFile configFile denyFile styleFormat styleAssert;
+  inherit rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags;
 
   # For backwards compatibility, expose the first build file
   buildFile = makeBuildFile (workspace.${builtins.head workspaceDirs});
