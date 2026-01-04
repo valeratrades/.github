@@ -4,8 +4,8 @@
   # config options
   cranelift ? true,
   deny ? false,
-  tracey ? false,
-  style ? true,
+  tracey ? true,
+  style ? {},
   nuke_snaps ? true,
   # build.rs options
   build ? {},
@@ -21,8 +21,11 @@ rs = v-utils.rs {
   inherit pkgs;
   cranelift = true;  # Enable cranelift backend (default: true)
   deny = false;      # Copy deny.toml for cargo-deny (default: false)
-  tracey = false;    # Enable tracey spec coverage (default: false)
-  style = true;      # Enable rust_style checks in pre-commit (default: true)
+  tracey = true;     # Enable tracey spec coverage (default: true)
+  style = {
+    format = true;   # Auto-fix style issues in pre-commit (default: true)
+    check = false;   # Error on unfixable style issues (default: false)
+  };
   nuke_snaps = true; # Delete .pending-snap files before commit (insta crate, default: true)
   build = {
     enable = true;          # Generate build.rs (default: true)
@@ -75,7 +78,7 @@ The shellHook will:
 
 enabledPackages includes:
 - `tracey` - spec coverage tool (if tracey = true)
-- `rust_style` - custom style linter (if style = true)
+- `rust_style` - custom style linter (if style.format or style.assert is true)
 '';
 } else
 
@@ -134,9 +137,14 @@ let
   denyHook = if deny then ''
     cp -f ${denyFile} ./deny.toml
   '' else "";
+
+  # Normalize style config
+  styleFormat = style.format or true;
+  styleAssert = style.check or false;
+  styleEnabled = styleFormat || styleAssert;
 in
 {
-  inherit rustfmtFile configFile denyFile;
+  inherit rustfmtFile configFile denyFile styleFormat styleAssert;
 
   # For backwards compatibility, expose the first build file
   buildFile = makeBuildFile (workspace.${builtins.head workspaceDirs});
@@ -151,8 +159,7 @@ in
 
   enabledPackages =
     (if tracey then [ traceyPkg ] else []) ++
-    (if style then [ rustStylePkg ] else []);
+    (if styleEnabled then [ rustStylePkg ] else []);
   traceyCheck = tracey;
-  styleCheck = style;
   nukeSnapsCheck = nuke_snaps;
 }

@@ -1,12 +1,30 @@
-{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleCheck ? true, nukeSnapsCheck ? true }:
+{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleFormat ? true, styleAssert ? false, nukeSnapsCheck ? true,
+  # backwards compat
+  styleCheck ? null,
+}:
 let
+  # Handle backwards compat: if styleCheck is explicitly passed, use it for both
+  actualStyleFormat = if styleCheck != null then styleCheck else styleFormat;
+  actualStyleAssert = if styleCheck != null then false else styleAssert;
+
   semverChecksCmd = if semverChecks then "cargo semver-checks" else "";
   traceyCmd = if traceyCheck then ''
     if [ -f ".config/tracey/config.kdl" ]; then
       tracey --check
     fi
   '' else "";
-  styleCmd = if styleCheck then "rust_style" else "";
+  # If both format and assert are true: run format and error if it had unfixable issues
+  # If only format: run format (auto-fix, don't error on unfixable)
+  # If only assert: run assert (error on any violation)
+  styleCmd = if actualStyleFormat && actualStyleAssert then ''
+    rust_style format
+    if [ $? -ne 0 ]; then
+      echo "rust_style: unfixable violations found"
+      exit 1
+    fi
+  '' else if actualStyleFormat then "rust_style format || true"
+  else if actualStyleAssert then "rust_style assert"
+  else "";
   # Nuke .pending-snap files (insta crate snapshots, - must always inline. Otherwise what's the point.)
   nukeSnapsCmd = if nukeSnapsCheck then ''
     for src_dir in $(fd -HI -t d -d 2 '^src$'); do
