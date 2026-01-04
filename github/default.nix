@@ -198,5 +198,5 @@ in
     ${labelSyncHook}
   '';
 
-  enabledPackages = [ git_ops ];
+  enabledPackages = [ git_ops ] ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else []);
 }
