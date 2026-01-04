@@ -41,7 +41,7 @@ See individual component descriptions in their respective directories.'';
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [ curl ];
           shellHook = ''
-            #_bump_script="./__scripts/bump_crate.rs" #DEPRECATE: momentarily have no need, as everything was switched to cargo-binstall. Keep for reference, and in case of future necessity.
+            _bump_script="./__scripts/bump_crate.rs"
             ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; bumpScript = "$_bump_script"; }}
             ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; bumpScript = "$_bump_script"; }}
             cp -f ${(files.gitignore { inherit pkgs; langs = [];})} ./.gitignore

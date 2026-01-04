@@ -26,16 +26,18 @@ ureq = { version = "2", features = ["json"] }
 regex = "1"
 ---
 
-//! Bump crate versions and hashes in v-utils flake.
+//! Bump crate versions in v-utils flake.
 //!
 //! Usage:
-//!   bump_crate.rs <crate-name>
-//!   bump_crate.rs --all
+//!   bump_crate.rs --crate "name:mode" [--crate "name:mode" ...] --version-var-postfix "Postfix"
+//!
+//! Modes:
+//!   binstall - Only update version variable (for crates installed via cargo-binstall)
+//!   source   - Update version and verify build with nix (for crates built from source)
 //!
 //! Examples:
-//!   bump_crate.rs codestyle
-//!   bump_crate.rs tracey
-//!   bump_crate.rs --all
+//!   bump_crate.rs --crate "tracey:binstall" --crate "codestyle:binstall" --version-var-postfix "Version"
+//!   bump_crate.rs --crate "tracey:source" --version-var-postfix "Version"
 
 use regex::Regex;
 use serde::Deserialize;
@@ -55,15 +57,78 @@ struct CrateInfo {
     newest_version: String,
 }
 
-struct CrateConfig {
-    name: &'static str,
-    version_var: &'static str,
+#[derive(Debug, Clone, Copy, PartialEq)]
+enum InstallMode {
+    Binstall,
+    Source,
 }
 
-const CRATES: &[CrateConfig] = &[
-    CrateConfig { name: "codestyle", version_var: "codestyleVersion" },
-    CrateConfig { name: "tracey", version_var: "traceyVersion" },
-];
+#[derive(Debug)]
+struct CrateConfig {
+    name: String,
+    version_var: String,
+    mode: InstallMode,
+}
+
+fn parse_args() -> Result<(Vec<CrateConfig>, String), String> {
+    let args: Vec<String> = env::args().collect();
+    let mut crates = Vec::new();
+    let mut version_var_postfix = None;
+    let mut i = 1;
+
+    while i < args.len() {
+        match args[i].as_str() {
+            "--help" | "-h" => {
+                return Err("help".to_string());
+            }
+            "--crate" => {
+                i += 1;
+                if i >= args.len() {
+                    return Err("--crate requires an argument".to_string());
+                }
+                let spec = &args[i];
+                let parts: Vec<&str> = spec.split(':').collect();
+                if parts.len() != 2 {
+                    return Err(format!("Invalid crate spec '{}': expected 'name:mode'", spec));
+                }
+                let name = parts[0].to_string();
+                let mode = match parts[1] {
+                    "binstall" => InstallMode::Binstall,
+                    "source" => InstallMode::Source,
+                    other => return Err(format!("Unknown mode '{}': expected 'binstall' or 'source'", other)),
+                };
+                crates.push((name, mode));
+            }
+            "--version-var-postfix" => {
+                i += 1;
+                if i >= args.len() {
+                    return Err("--version-var-postfix requires an argument".to_string());
+                }
+                version_var_postfix = Some(args[i].clone());
+            }
+            other => {
+                return Err(format!("Unknown argument: {}", other));
+            }
+        }
+        i += 1;
+    }
+
+    let postfix = version_var_postfix.ok_or_else(|| "--version-var-postfix is required".to_string())?;
+
+    if crates.is_empty() {
+        return Err("At least one --crate argument is required".to_string());
+    }
+
+    let configs: Vec<CrateConfig> = crates
+        .into_iter()
+        .map(|(name, mode)| {
+            let version_var = format!("{}{}", name, postfix);
+            CrateConfig { name, version_var, mode }
+        })
+        .collect();
+
+    Ok((configs, postfix))
+}
 
 fn get_latest_version(crate_name: &str) -> Result<String, String> {
     let url = format!("https://crates.io/api/v1/crates/{}", crate_name);
@@ -213,10 +278,10 @@ fn update_cargo_hash(content: &str, crate_name: &str, new_hash: &str) -> String 
     result.join("\n")
 }
 
-fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String> {
-    println!("Checking {}...", crate_cfg.name);
+fn bump_crate_binstall(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String> {
+    println!("Checking {} (binstall)...", crate_cfg.name);
 
-    let latest = get_latest_version(crate_cfg.name)?;
+    let latest = get_latest_version(&crate_cfg.name)?;
     println!("  Latest version: {}", latest);
 
     let flake_path = repo_root.join("flake.nix");
@@ -227,7 +292,45 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
     let rs_content = fs::read_to_string(&rs_path)
         .map_err(|e| format!("Failed to read rs/default.nix: {}", e))?;
 
-    let current = get_current_version(&flake_content, crate_cfg.version_var)
+    let current = get_current_version(&flake_content, &crate_cfg.version_var)
+        .ok_or_else(|| format!("Could not find {} in flake.nix", crate_cfg.version_var))?;
+    println!("  Current version: {}", current);
+
+    if current == latest {
+        println!("  Already up to date!");
+        return Ok(false);
+    }
+
+    println!("  Updating {} -> {}...", current, latest);
+
+    // For binstall mode, just update version variables
+    let flake_content = update_version(&flake_content, &crate_cfg.version_var, &latest);
+    let rs_content = update_version(&rs_content, &crate_cfg.version_var, &latest);
+
+    fs::write(&flake_path, &flake_content)
+        .map_err(|e| format!("Failed to write flake.nix: {}", e))?;
+    fs::write(&rs_path, &rs_content)
+        .map_err(|e| format!("Failed to write rs/default.nix: {}", e))?;
+
+    println!("  SUCCESS: {} updated to {}", crate_cfg.name, latest);
+    Ok(true)
+}
+
+fn bump_crate_source(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String> {
+    println!("Checking {} (source)...", crate_cfg.name);
+
+    let latest = get_latest_version(&crate_cfg.name)?;
+    println!("  Latest version: {}", latest);
+
+    let flake_path = repo_root.join("flake.nix");
+    let rs_path = repo_root.join("rs/default.nix");
+
+    let flake_content = fs::read_to_string(&flake_path)
+        .map_err(|e| format!("Failed to read flake.nix: {}", e))?;
+    let rs_content = fs::read_to_string(&rs_path)
+        .map_err(|e| format!("Failed to read rs/default.nix: {}", e))?;
+
+    let current = get_current_version(&flake_content, &crate_cfg.version_var)
         .ok_or_else(|| format!("Could not find {} in flake.nix", crate_cfg.version_var))?;
     println!("  Current version: {}", current);
 
@@ -240,15 +343,15 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
 
     // Get new source hash
     println!("  Fetching source hash...");
-    let src_hash = get_src_hash(crate_cfg.name, &latest)?;
+    let src_hash = get_src_hash(&crate_cfg.name, &latest)?;
     println!("  Source hash: {}", src_hash);
 
     // Update versions
-    let flake_content = update_version(&flake_content, crate_cfg.version_var, &latest);
-    let rs_content = update_version(&rs_content, crate_cfg.version_var, &latest);
+    let flake_content = update_version(&flake_content, &crate_cfg.version_var, &latest);
+    let rs_content = update_version(&rs_content, &crate_cfg.version_var, &latest);
 
     // Update source hash
-    let rs_content = update_src_hash(&rs_content, crate_cfg.name, &src_hash);
+    let rs_content = update_src_hash(&rs_content, &crate_cfg.name, &src_hash);
 
     // Write updates
     fs::write(&flake_path, &flake_content)
@@ -258,11 +361,11 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
 
     // Try to build to get cargoHash
     println!("  Building to determine cargoHash (will fail once)...");
-    if let Some(cargo_hash) = get_cargo_hash_from_build_error(crate_cfg.name, &latest, &src_hash, repo_root) {
+    if let Some(cargo_hash) = get_cargo_hash_from_build_error(&crate_cfg.name, &latest, &src_hash, repo_root) {
         println!("  New cargoHash: {}", cargo_hash);
         let rs_content = fs::read_to_string(&rs_path)
             .map_err(|e| format!("Failed to read rs/default.nix: {}", e))?;
-        let rs_content = update_cargo_hash(&rs_content, crate_cfg.name, &cargo_hash);
+        let rs_content = update_cargo_hash(&rs_content, &crate_cfg.name, &cargo_hash);
         fs::write(&rs_path, rs_content)
             .map_err(|e| format!("Failed to write rs/default.nix: {}", e))?;
     }
@@ -344,14 +447,39 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
     }
 }
 
-fn main() -> ExitCode {
-    let args: Vec<String> = env::args().collect();
-
-    if args.len() < 2 {
-        eprintln!("Usage: {} <crate-name> | --all", args[0]);
-        eprintln!("Available crates: {}", CRATES.iter().map(|c| c.name).collect::<Vec<_>>().join(", "));
-        return ExitCode::from(1);
+fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String> {
+    match crate_cfg.mode {
+        InstallMode::Binstall => bump_crate_binstall(crate_cfg, repo_root),
+        InstallMode::Source => bump_crate_source(crate_cfg, repo_root),
     }
+}
+
+fn print_usage() {
+    eprintln!("Usage: bump_crate.rs --crate \"name:mode\" [--crate ...] --version-var-postfix \"Postfix\"");
+    eprintln!();
+    eprintln!("Modes:");
+    eprintln!("  binstall - Only update version variable (for crates installed via cargo-binstall)");
+    eprintln!("  source   - Update version and verify build with nix (for crates built from source)");
+    eprintln!();
+    eprintln!("Examples:");
+    eprintln!("  bump_crate.rs --crate \"tracey:binstall\" --crate \"codestyle:binstall\" --version-var-postfix \"Version\"");
+    eprintln!("  bump_crate.rs --crate \"tracey:source\" --version-var-postfix \"Version\"");
+}
+
+fn main() -> ExitCode {
+    let (crates, _postfix) = match parse_args() {
+        Ok(result) => result,
+        Err(e) if e == "help" => {
+            print_usage();
+            return ExitCode::from(0);
+        }
+        Err(e) => {
+            eprintln!("ERROR: {}", e);
+            eprintln!();
+            print_usage();
+            return ExitCode::from(1);
+        }
+    };
 
     // Find repo root (directory containing flake.nix)
     let mut repo_root = env::current_dir().expect("Failed to get current directory");
@@ -362,24 +490,10 @@ fn main() -> ExitCode {
         }
     }
 
-    let target = &args[1];
-    let crates_to_bump: Vec<&CrateConfig> = if target == "--all" {
-        CRATES.iter().collect()
-    } else {
-        match CRATES.iter().find(|c| c.name == target) {
-            Some(c) => vec![c],
-            None => {
-                eprintln!("ERROR: Unknown crate '{}'. Available: {}", target,
-                    CRATES.iter().map(|c| c.name).collect::<Vec<_>>().join(", "));
-                return ExitCode::from(1);
-            }
-        }
-    };
-
     let mut any_updated = false;
     let mut any_failed = false;
 
-    for crate_cfg in crates_to_bump {
+    for crate_cfg in &crates {
         match bump_crate(crate_cfg, &repo_root) {
             Ok(updated) => any_updated |= updated,
             Err(e) => {
