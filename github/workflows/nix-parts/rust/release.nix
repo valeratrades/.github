@@ -1,6 +1,8 @@
 # Generates release workflow for cargo-binstall compatible binary distribution
 # Triggers on version tags (v*), builds for multiple platforms, uploads to GitHub Releases
 {
+  # Set to true to use defaults, or customize individual fields
+  default ? false,
   targets ? [
     "x86_64-unknown-linux-gnu"
     "x86_64-apple-darwin"

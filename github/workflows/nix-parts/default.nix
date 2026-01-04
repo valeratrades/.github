@@ -22,11 +22,11 @@ workflows = import ./github/workflows/nix-parts {
 
 Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, rust-leptosfmt, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
 
-Standalone workflows (enabled via attrsets):
-- release = { targets = [...]; cargoFlags = {...}; aptDeps = [...]; }
+Standalone workflows:
+- release = { default = true; } or release = { targets = [...]; ... }
     Binary release for cargo-binstall (triggers on v* tags)
     Default targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin
-- releaseLatest = { platforms = [...]; cargoFlags = {...}; aptDeps = [...]; branch = "release"; }
+- releaseLatest = { default = true; } or releaseLatest = { platforms = [...]; ... }
     Rolling "latest" releases per platform (triggers on branch push)
     Available platforms: debian, windows, macos
 '';
@@ -114,23 +114,33 @@ let
       workflow_dispatch = { };
     };
   };
+  # Check if release config is enabled (default = true required, custom fields override defaults)
+  releaseEnabled = release != null && (
+    (builtins.isAttrs release && (release.default or false))
+    || release == true
+  );
+  releaseLatestEnabled = releaseLatest != null && (
+    (builtins.isAttrs releaseLatest && (releaseLatest.default or false))
+    || releaseLatest == true
+  );
+
   # Standalone release workflow (binstall-compatible, triggers on v* tags)
-  releaseWorkflow = if release != null then
+  releaseWorkflow = if releaseEnabled then
     let
       releaseSpec = import files.rust-release (
-        if builtins.isAttrs release then release else {}
+        if builtins.isAttrs release then release else { default = true; }
       );
-    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" ])
+    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" "default" ])
   else null;
 
   # Rolling "latest" release workflows (per-platform, triggers on branch push)
-  releaseLatestWorkflows = if releaseLatest != null then
+  releaseLatestWorkflows = if releaseLatestEnabled then
     let
       spec = import files.rust-release-latest (
-        if builtins.isAttrs releaseLatest then releaseLatest else {}
+        if builtins.isAttrs releaseLatest then releaseLatest else { default = true; }
       );
     in builtins.mapAttrs (name: wf:
-      (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" ])
+      (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" "default" ])
     ) spec.workflows
   else {};
 
