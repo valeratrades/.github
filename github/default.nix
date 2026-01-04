@@ -40,7 +40,7 @@ github = v-utils.github {
     ];
   };
   preCommit = {
-    semverChecks = true;  # Run cargo-semver-checks (default: true)
+    semverChecks = false;  # Run cargo-semver-checks (default: false, can be very slow)
   };
 
   # Binary releases for cargo-binstall (triggers on v* tags)
@@ -175,7 +175,8 @@ let
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
 
   # Process preCommit config
-  semverChecks = preCommit.semverChecks or true;
+  # can be very slow
+  semverChecks = preCommit.semverChecks or false;
 
   labelSyncHook = if labelsEnabled then ''
     ${git_ops}/bin/git_ops sync-labels &
