@@ -75,18 +75,18 @@ in
           name = "Package binary (unix)";
           "if" = "runner.os != 'Windows'";
           run = ''
-            cd target/${{ matrix.target }}/release
+            cd target/''${{ matrix.target }}/release
             PNAME="''${GITHUB_REPOSITORY##*/}"
-            tar -czvf ../../../''${PNAME}-${{ matrix.target }}.tar.gz $PNAME
+            tar -czvf ../../../''${PNAME}-''${{ matrix.target }}.tar.gz ''$PNAME
           '';
         }
         {
           name = "Package binary (windows)";
           "if" = "runner.os == 'Windows'";
           run = ''
-            cd target/${{ matrix.target }}/release
-            $PNAME = $env:GITHUB_REPOSITORY.Split('/')[-1]
-            Compress-Archive -Path "$PNAME.exe" -DestinationPath "../../../$PNAME-${{ matrix.target }}.zip"
+            cd target/''${{ matrix.target }}/release
+            ''$PNAME = ''$env:GITHUB_REPOSITORY.Split('/')[-1]
+            Compress-Archive -Path "''$PNAME.exe" -DestinationPath "../../../''$PNAME-''${{ matrix.target }}.zip"
           '';
           shell = "pwsh";
         }

@@ -164,7 +164,7 @@ let
     );
   };
 
-  ensureBinstallScript = ../ensure_binstall_metadata.rs;
+  ensureBinstallScript = ../../ensure_binstall_metadata.rs;
 
   releaseHook = if releaseWorkflow != null then ''
     cp -f ${releaseWorkflow} ./.github/workflows/release.yml
