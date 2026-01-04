@@ -126,12 +126,15 @@ let
 
   # Generate install commands for each workspace directory
   workspaceDirs = builtins.attrNames workspace;
+  buildRustfmtFile = ../files/rust/build/rustfmt.toml;
   buildHook = if buildEnable then
     builtins.concatStringsSep "\n" (map (dir:
       let
         buildFile = makeBuildFile workspace.${dir};
+        targetPath = normalizePath dir;
       in ''
-      install -m 644 ${buildFile} ${normalizePath dir}
+      install -m 644 ${buildFile} ${targetPath}
+      rustfmt --config-path ${buildRustfmtFile} ${targetPath}
     '') workspaceDirs)
   else "";
 
