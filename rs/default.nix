@@ -73,7 +73,6 @@ The shellHook will:
 - Copy cargo config to ./.cargo/config.toml
 - Copy build.rs to each directory in build.workspace (with write permissions for treefmt)
 - Copy deny.toml to ./deny.toml (if deny = true)
-- Check crates.io for newer versions of tracey/codestyle (warns if outdated)
 
 enabledPackages includes:
 - `tracey` - spec coverage tool (if tracey = true)
@@ -83,14 +82,13 @@ enabledPackages includes:
 
 let
   files = import ../files;
-  utils = import ../utils;
 
   buildEnable = build.enable or true;
   workspace = build.workspace or { "./" = [ "git_version" "log_directives" ]; };
 
   # Package versions - update these when bumping
   traceyVersion = "1.0.0";
-  codestyleVersion = "0.1.0";
+  codestyleVersion = "0.1.1";
 
   traceyPkg = pkgs.rustPlatform.buildRustPackage {
     pname = "tracey";
@@ -122,7 +120,7 @@ let
       src = pkgs.fetchCrate {
         pname = "codestyle";
         version = codestyleVersion;
-        hash = "sha256-b/ydxEW8aSKSQdmUB7W0bJa0MT1R35cquuJzGbZgGwE=";
+        hash = "sha256-h+Y6JYsMfoSFajjYZhhakFdV2d4B2LeGYiejiqF9LjQ=";
       };
       cargoHash = "sha256-r8NQv13fdgju4Ik3hQQ8uyJUq5G9fhJo3RadY9vS8fM=";
       doCheck = false;
@@ -162,11 +160,6 @@ let
   styleFormat = style.format or true;
   styleAssert = style.check or false;
   styleEnabled = styleFormat || styleAssert;
-
-  # Version checks for bundled packages (runs in background on shell entry)
-  versionCheckHook =
-    (if tracey then utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; } else "") +
-    (if styleEnabled then utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; } else "");
 in
 {
   inherit rustfmtFile configFile denyFile styleFormat styleAssert;
@@ -180,7 +173,6 @@ in
     cp -f ${configFile} ./.cargo/config.toml
     ${buildHook}
     ${denyHook}
-    ${versionCheckHook}
   '';
 
   enabledPackages =
