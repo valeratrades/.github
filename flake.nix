@@ -14,7 +14,7 @@ See individual component descriptions in their respective directories.'';
 
       # Version constants for bundled packages - update these when bumping
       traceyVersion = "1.0.0";
-      codestyleVersion = "0.2.3";
+      codestyleVersion = "0.2.4";
 
       parts = {
         files = (import ./files).description;
@@ -27,13 +27,6 @@ See individual component descriptions in their respective directories.'';
         pkgs = import nixpkgs { inherit system; };
         utils = import ./utils;
         files = import ./files;
-
-        # GitHub module for gitignore (no labels - this is a fork of dtolnay)
-        github = (import ./github) {
-          inherit pkgs pname;
-          langs = [ "nix" ];
-          labels = { enable = false; };
-        };
 
         # README generation
         readme = (import ./readme_fw) {
@@ -48,7 +41,7 @@ See individual component descriptions in their respective directories.'';
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [ curl ];
           shellHook = ''
-            _bump_script="./__scripts/bump_crate.rs"
+            #_bump_script="./__scripts/bump_crate.rs" #DEPRECATE: momentarily have no need, as everything was switched to cargo-binstall. Keep for reference, and in case of future necessity.
             ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; bumpScript = "$_bump_script"; }}
             ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; bumpScript = "$_bump_script"; }}
             cp -f ${(files.gitignore { inherit pkgs; langs = [];})} ./.gitignore
