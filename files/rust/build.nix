@@ -45,17 +45,29 @@ const DEPRECATE_FORCE: bool = ${force};
 ''
   else "";
 
-  # Collect module codes
-  module_codes = (if has_git_version then [ git_version_code ] else [])
-               ++ (if has_log_directives then [ log_directives_code ] else [])
-               ++ (if has_deprecate then [ deprecate_code ] else []);
+  # Trim trailing whitespace from a string
+  trimRight = s:
+    let
+      len = builtins.stringLength s;
+      go = i:
+        if i < 0 then ""
+        else
+          let c = builtins.substring i 1 s;
+          in if c == "\n" || c == "\t" || c == " " then go (i - 1)
+          else builtins.substring 0 (i + 1) s;
+    in go (len - 1);
+
+  # Collect module codes (trimmed)
+  module_codes = (if has_git_version then [ (trimRight git_version_code) ] else [])
+               ++ (if has_log_directives then [ (trimRight log_directives_code) ] else [])
+               ++ (if has_deprecate then [ (trimRight deprecate_code) ] else []);
 
   # Collect function calls for main()
   module_calls = (if has_git_version then [ "git_version();" ] else [])
                ++ (if has_log_directives then [ "log_directives();" ] else [])
                ++ (if has_deprecate then [ "deprecate();" ] else []);
 
-  modules_body = builtins.concatStringsSep "\n" module_codes;
+  modules_body = builtins.concatStringsSep "\n\n" module_codes;
   main_calls = builtins.concatStringsSep "\n\t" module_calls;
 in
 pkgs.writeText "build.rs" ''
