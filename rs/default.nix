@@ -103,32 +103,8 @@ let
   traceyVersion = "1.0.0";
   codestyleVersion = "0.2.3";
 
-  # codestyle from crates.io - requires nightly Rust
-  # Projects using this must have rust-overlay applied to their pkgs
-  # NB: Must pin the nightly date, as `latest` changes daily and invalidates cargoHash
-  codestyleNightly = "2025-10-10";
-  codestylePkg =
-    let
-      nightlyRust = pkgs.rust-bin.nightly.${codestyleNightly}.default;
-      nightlyPlatform = pkgs.makeRustPlatform {
-        rustc = nightlyRust;
-        cargo = nightlyRust;
-      };
-    in
-    (nightlyPlatform.buildRustPackage {
-      pname = "codestyle";
-      version = codestyleVersion;
-      src = pkgs.fetchCrate {
-        pname = "codestyle";
-        version = codestyleVersion;
-        hash = "sha256-/mUVNL3hM2t7bzdyw+faxvPWyAZmnAHPBpLY/S3Wsrs=";
-      };
-      cargoHash = "sha256-yzGjLggCr4xBNMAzBvdR2qc9gKO1il0OkCJbpAJSwSg=";
-      nativeBuildInputs = [ pkgs.mold ];
-    }).overrideAttrs (old: {
-      doCheck = false;
-      doInstallCheck = false;
-    });
+  # codestyle installed via binstall (same as tracey)
+  # Building from source fails in nix sandbox due to TMPDIR issues during cargo build
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
   # Handles both "./" and "./cli" and "./cli/" correctly
@@ -165,15 +141,21 @@ let
   styleAssert = style.check or false;
   styleEnabled = styleFormat || styleAssert;
 
-  # binstall hook - installs tracey via cargo-binstall at shell entry
+  # binstall hook - installs tracey and codestyle via cargo-binstall at shell entry
   # Uses ~/.cargo/bin as install location
-  binstallHook = if tracey then ''
+  binstallHook = ''
     export PATH="$HOME/.cargo/bin:$PATH"
+  '' + (if tracey then ''
     if ! command -v tracey &>/dev/null; then
       echo "Installing tracey@${traceyVersion}..."
       cargo binstall tracey@${traceyVersion} --no-confirm -q 2>/dev/null || cargo install tracey@${traceyVersion} -q
     fi
-  '' else "";
+  '' else "") + (if styleEnabled then ''
+    if ! command -v codestyle &>/dev/null; then
+      echo "Installing codestyle@${codestyleVersion}..."
+      cargo binstall codestyle@${codestyleVersion} --no-confirm -q 2>/dev/null || cargo install codestyle@${codestyleVersion} -q
+    fi
+  '' else "");
 in
 {
   inherit rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags;
@@ -190,9 +172,7 @@ in
     ${binstallHook}
   '';
 
-  # cargo-binstall for tracey, codestyle built from source
-  enabledPackages =
-    [ pkgs.cargo-binstall ] ++
-    (if styleEnabled then [ codestylePkg ] else []);
+  # cargo-binstall for tracey and codestyle
+  enabledPackages = [ pkgs.cargo-binstall ];
   traceyCheck = tracey;
 }
