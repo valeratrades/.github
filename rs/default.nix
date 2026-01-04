@@ -6,6 +6,7 @@
   deny ? false,
   tracey ? false,
   style ? true,
+  nuke_snaps ? true,
   # build.rs options
   build ? {},
 }:
@@ -22,6 +23,7 @@ rs = v-utils.rs {
   deny = false;      # Copy deny.toml for cargo-deny (default: false)
   tracey = false;    # Enable tracey spec coverage (default: false)
   style = true;      # Enable rust_style checks in pre-commit (default: true)
+  nuke_snaps = true; # Delete .pending-snap files before commit (insta crate, default: true)
   build = {
     enable = true;          # Generate build.rs (default: true)
     workspace = {           # Per-directory build.rs modules (default: { "./" = [ "git_version" "log_directives" ]; })
@@ -152,4 +154,5 @@ in
     (if style then [ rustStylePkg ] else []);
   traceyCheck = tracey;
   styleCheck = style;
+  nukeSnapsCheck = nuke_snaps;
 }

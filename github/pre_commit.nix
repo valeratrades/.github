@@ -1,4 +1,4 @@
-{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleCheck ? true }:
+{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleCheck ? true, nukeSnapsCheck ? true }:
 let
   semverChecksCmd = if semverChecks then "cargo semver-checks" else "";
   traceyCmd = if traceyCheck then ''
@@ -7,6 +7,10 @@ let
     fi
   '' else "";
   styleCmd = if styleCheck then "rust_style" else "";
+  # Nuke .pending-snap files (insta crate snapshots, - must always inline. Otherwise what's the point.)
+  nukeSnapsCmd = if nukeSnapsCheck then ''
+    fd -e pending-snap -x rm {} \;
+  '' else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"
     config_filepath_toml="''${HOME}/.config/${pname}.toml"
@@ -48,6 +52,7 @@ let
       ${semverChecksCmd}
       ${traceyCmd}
       ${styleCmd}
+      ${nukeSnapsCmd}
     fi
 
     rm commit >/dev/null 2>&1 # remove commit message text file if it exists
