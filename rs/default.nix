@@ -135,7 +135,7 @@ let
         version = codestyleVersion;
         hash = "sha256-QB5CD8A7kf1c+zTEc4GZlRDEUq4yWO3N67BL+RKgUg8=";
       };
-      cargoHash = "sha256-xLzrpeDIyhg2vGAs3doMV0eNgYJVnfF//fGiOmLww7I=";
+      cargoHash = "sha256-LLLAu0C0GPL9DWa1AbdHBEi2h2tnunOycObKwWr+yxc=";
       doCheck = false;
     };
 

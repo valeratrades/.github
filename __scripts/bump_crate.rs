@@ -125,9 +125,43 @@ fn update_src_hash(content: &str, crate_name: &str, new_hash: &str) -> String {
     re.replace(content, format!("${{1}}{}${{2}}", new_hash)).to_string()
 }
 
-fn get_cargo_hash_from_build_error(repo_root: &Path) -> Option<String> {
-    let output = Command::new("nix")
-        .args(["build", ".#devShells.x86_64-linux.default"])
+fn get_cargo_hash_from_build_error(crate_name: &str, version: &str, src_hash: &str, repo_root: &Path) -> Option<String> {
+    // Build a minimal nix expression that uses fetchCargoVendor with a fake hash
+    // to get the correct hash from the error message
+    let nix_expr = format!(
+        r#"
+        let
+          rust_flake = builtins.getFlake "github:oxalica/rust-overlay";
+          nixpkgs_flake = builtins.getFlake "nixpkgs";
+          pkgs = import nixpkgs_flake {{
+            system = builtins.currentSystem;
+            overlays = [ rust_flake.overlays.default ];
+          }};
+          nightlyRust = pkgs.rust-bin.nightly.latest.default;
+          nightlyPlatform = pkgs.makeRustPlatform {{
+            rustc = nightlyRust;
+            cargo = nightlyRust;
+          }};
+        in
+        nightlyPlatform.buildRustPackage {{
+          pname = "{crate_name}";
+          version = "{version}";
+          src = pkgs.fetchCrate {{
+            pname = "{crate_name}";
+            version = "{version}";
+            hash = "{src_hash}";
+          }};
+          cargoHash = "sha256-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+          doCheck = false;
+        }}
+        "#,
+        crate_name = crate_name,
+        version = version,
+        src_hash = src_hash
+    );
+
+    let output = Command::new("nix-build")
+        .args(["--impure", "--expr", &nix_expr])
         .current_dir(repo_root)
         .output()
         .ok()?;
@@ -219,7 +253,7 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
 
     // Try to build to get cargoHash
     println!("  Building to determine cargoHash (will fail once)...");
-    if let Some(cargo_hash) = get_cargo_hash_from_build_error(repo_root) {
+    if let Some(cargo_hash) = get_cargo_hash_from_build_error(crate_cfg.name, &latest, &src_hash, repo_root) {
         println!("  New cargoHash: {}", cargo_hash);
         let rs_content = fs::read_to_string(&rs_path)
             .map_err(|e| format!("Failed to read rs/default.nix: {}", e))?;
@@ -228,13 +262,72 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
             .map_err(|e| format!("Failed to write rs/default.nix: {}", e))?;
     }
 
-    // Verify build
+    // Verify build by actually building the crate with the updated hashes
     println!("  Verifying build...");
-    let status = Command::new("nix")
-        .args(["build", ".#devShells.x86_64-linux.default"])
+
+    // Read the updated rs/default.nix to get the new cargoHash
+    let rs_content = fs::read_to_string(&rs_path)
+        .map_err(|e| format!("Failed to read rs/default.nix: {}", e))?;
+
+    // Extract cargoHash from the file
+    let cargo_hash = {
+        let lines: Vec<&str> = rs_content.lines().collect();
+        let mut in_crate_block = false;
+        let mut found_hash = None;
+        for line in lines {
+            if line.contains(&format!("pname = \"{}\"", crate_cfg.name)) {
+                in_crate_block = true;
+            }
+            if in_crate_block && line.contains("cargoHash = ") {
+                let re = Regex::new(r#"cargoHash = "([^"]+)""#).unwrap();
+                if let Some(caps) = re.captures(line) {
+                    found_hash = Some(caps[1].to_string());
+                }
+                break;
+            }
+        }
+        found_hash.ok_or_else(|| "Could not find cargoHash in rs/default.nix".to_string())?
+    };
+
+    // Build a verification expression
+    let verify_expr = format!(
+        r#"
+        let
+          rust_flake = builtins.getFlake "github:oxalica/rust-overlay";
+          nixpkgs_flake = builtins.getFlake "nixpkgs";
+          pkgs = import nixpkgs_flake {{
+            system = builtins.currentSystem;
+            overlays = [ rust_flake.overlays.default ];
+          }};
+          nightlyRust = pkgs.rust-bin.nightly.latest.default;
+          nightlyPlatform = pkgs.makeRustPlatform {{
+            rustc = nightlyRust;
+            cargo = nightlyRust;
+          }};
+        in
+        nightlyPlatform.buildRustPackage {{
+          pname = "{crate_name}";
+          version = "{version}";
+          src = pkgs.fetchCrate {{
+            pname = "{crate_name}";
+            version = "{version}";
+            hash = "{src_hash}";
+          }};
+          cargoHash = "{cargo_hash}";
+          doCheck = false;
+        }}
+        "#,
+        crate_name = crate_cfg.name,
+        version = latest,
+        src_hash = src_hash,
+        cargo_hash = cargo_hash
+    );
+
+    let status = Command::new("nix-build")
+        .args(["--impure", "--expr", &verify_expr, "--no-out-link"])
         .current_dir(repo_root)
         .status()
-        .map_err(|e| format!("Failed to run nix build: {}", e))?;
+        .map_err(|e| format!("Failed to run nix-build: {}", e))?;
 
     if status.success() {
         println!("  SUCCESS: {} updated to {}", crate_cfg.name, latest);
