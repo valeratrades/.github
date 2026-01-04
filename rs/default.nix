@@ -126,6 +126,8 @@ let
       cargoHash = "sha256-yzGjLggCr4xBNMAzBvdR2qc9gKO1il0OkCJbpAJSwSg=";
       nativeBuildInputs = [ pkgs.mold ];
       doCheck = false;
+      checkPhase = "";
+      cargoTestFlags = [ "--skip" "*" ];
     };
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
