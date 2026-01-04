@@ -42,9 +42,9 @@ struct Args {
 enum Commands {
     /// Sync repository labels with local configuration
     SyncLabels {
-        /// Labels in format "name:color" (color without #), can be repeated
+        /// Labels in format "name:color[:description]" (color without #), can be repeated
         #[arg(short, long, value_parser = parse_label)]
-        label: Vec<(String, String)>,
+        label: Vec<LabelSpec>,
 
         /// Check for duplicate or too-similar colors
         #[arg(long)]
@@ -52,23 +52,32 @@ enum Commands {
     },
 }
 
-fn parse_label(s: &str) -> Result<(String, String), String> {
-    let parts: Vec<&str> = s.splitn(2, ':').collect();
-    if parts.len() != 2 {
-        return Err(format!("Invalid label format '{}', expected 'name:color'", s));
+#[derive(Debug, Clone)]
+struct LabelSpec {
+    name: String,
+    color: String,
+    description: Option<String>,
+}
+
+fn parse_label(s: &str) -> Result<LabelSpec, String> {
+    let parts: Vec<&str> = s.splitn(3, ':').collect();
+    if parts.len() < 2 {
+        return Err(format!("Invalid label format '{}', expected 'name:color[:description]'", s));
     }
     let name = parts[0].to_string();
     let color = parts[1].trim_start_matches('#').to_string();
     if color.len() != 6 || !color.chars().all(|c| c.is_ascii_hexdigit()) {
         return Err(format!("Invalid color '{}', expected 6-digit hex", parts[1]));
     }
-    Ok((name, color))
+    let description = parts.get(2).filter(|d| !d.is_empty()).map(|d| d.to_string());
+    Ok(LabelSpec { name, color, description })
 }
 
 #[derive(Debug, Deserialize)]
 struct GhLabel {
     name: String,
     color: String,
+    description: Option<String>,
 }
 
 fn run_gh(args: &[&str]) -> io::Result<std::process::Output> {
@@ -80,7 +89,7 @@ fn run_gh_success(args: &[&str]) -> bool {
 }
 
 fn get_remote_labels() -> Result<Vec<GhLabel>, String> {
-    let output = run_gh(&["label", "list", "--json", "name,color", "--limit", "1000"])
+    let output = run_gh(&["label", "list", "--json", "name,color,description", "--limit", "1000"])
         .map_err(|e| format!("Failed to run gh: {}", e))?;
 
     if !output.status.success() {
@@ -96,14 +105,30 @@ fn get_remote_labels() -> Result<Vec<GhLabel>, String> {
     Ok(labels)
 }
 
-fn create_label(name: &str, color: &str) -> bool {
-    println!("  Creating label '{}' with color #{}", name, color);
-    run_gh_success(&["label", "create", name, "--color", color, "--force"])
+fn create_label(name: &str, color: &str, description: Option<&str>) -> bool {
+    match description {
+        Some(desc) => {
+            println!("  Creating label '{}' with color #{}", name, color);
+            run_gh_success(&["label", "create", name, "--color", color, "--description", desc, "--force"])
+        }
+        None => {
+            println!("  Creating label '{}' with color #{}", name, color);
+            run_gh_success(&["label", "create", name, "--color", color, "--force"])
+        }
+    }
 }
 
-fn update_label(name: &str, color: &str) -> bool {
-    println!("  Updating label '{}' to color #{}", name, color);
-    run_gh_success(&["label", "edit", name, "--color", color])
+fn update_label(name: &str, color: &str, description: Option<&str>) -> bool {
+    match description {
+        Some(desc) => {
+            println!("  Updating label '{}' to color #{}", name, color);
+            run_gh_success(&["label", "edit", name, "--color", color, "--description", desc])
+        }
+        None => {
+            println!("  Updating label '{}' to color #{}", name, color);
+            run_gh_success(&["label", "edit", name, "--color", color])
+        }
+    }
 }
 
 fn delete_label(name: &str) -> bool {
@@ -167,27 +192,27 @@ fn rgb_to_hsl(r: u8, g: u8, b: u8) -> (f64, f64, f64) {
     (h * 60.0, s * 100.0, l * 100.0)
 }
 
-fn check_duplicate_colors(labels: &[(String, String)]) -> Result<(), String> {
+fn check_duplicate_colors(labels: &[LabelSpec]) -> Result<(), String> {
     // Check exact duplicates
     let mut color_to_name: HashMap<String, &str> = HashMap::new();
-    for (name, color) in labels {
-        let color_lower = color.to_lowercase();
+    for label in labels {
+        let color_lower = label.color.to_lowercase();
         if let Some(existing) = color_to_name.get(&color_lower) {
             return Err(format!(
                 "Duplicate color #{}: '{}' and '{}'",
-                color, existing, name
+                label.color, existing, label.name
             ));
         }
-        color_to_name.insert(color_lower, name);
+        color_to_name.insert(color_lower, &label.name);
     }
 
     // Convert to HSL and sort by hue
     let mut hsl_labels: Vec<(&str, &str, f64, f64, f64)> = labels
         .iter()
-        .map(|(name, color)| {
-            let (r, g, b) = hex_to_rgb(color);
+        .map(|label| {
+            let (r, g, b) = hex_to_rgb(&label.color);
             let (h, s, l) = rgb_to_hsl(r, g, b);
-            (name.as_str(), color.as_str(), h, s, l)
+            (label.name.as_str(), label.color.as_str(), h, s, l)
         })
         .collect();
 
@@ -223,7 +248,7 @@ fn check_duplicate_colors(labels: &[(String, String)]) -> Result<(), String> {
     Ok(())
 }
 
-fn sync_labels(local_labels: Vec<(String, String)>, check_colors: bool) {
+fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
     if check_colors {
         if let Err(e) = check_duplicate_colors(&local_labels) {
             eprintln!("ERROR: {}", e);
@@ -242,10 +267,13 @@ fn sync_labels(local_labels: Vec<(String, String)>, check_colors: bool) {
         }
     };
 
-    let local_map: HashMap<String, String> = local_labels.into_iter().collect();
-    let remote_map: HashMap<String, String> = remote_labels
+    let local_map: HashMap<String, (String, Option<String>)> = local_labels
         .into_iter()
-        .map(|l| (l.name, l.color))
+        .map(|l| (l.name, (l.color, l.description)))
+        .collect();
+    let remote_map: HashMap<String, (String, Option<String>)> = remote_labels
+        .into_iter()
+        .map(|l| (l.name, (l.color, l.description)))
         .collect();
 
     let mut created = 0;
@@ -253,23 +281,26 @@ fn sync_labels(local_labels: Vec<(String, String)>, check_colors: bool) {
     let mut deleted = 0;
 
     // Create or update labels
-    for (name, color) in &local_map {
+    for (name, (color, description)) in &local_map {
         match remote_map.get(name) {
             None => {
-                if create_label(name, color) {
+                if create_label(name, color, description.as_deref()) {
                     created += 1;
                 } else {
                     eprintln!("  Failed to create label '{}'", name);
                 }
             }
-            Some(remote_color) if remote_color.to_lowercase() != color.to_lowercase() => {
-                if update_label(name, color) {
-                    updated += 1;
-                } else {
-                    eprintln!("  Failed to update label '{}'", name);
+            Some((remote_color, remote_desc)) => {
+                let color_differs = remote_color.to_lowercase() != color.to_lowercase();
+                let desc_differs = remote_desc != description;
+                if color_differs || desc_differs {
+                    if update_label(name, color, description.as_deref()) {
+                        updated += 1;
+                    } else {
+                        eprintln!("  Failed to update label '{}'", name);
+                    }
                 }
             }
-            _ => {}
         }
     }
 

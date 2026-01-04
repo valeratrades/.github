@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleFormat ? true, styleAssert ? false, nukeSnapsCheck ? true }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleFormat ? true, styleAssert ? false }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -33,9 +33,10 @@ github = v-utils.github {
   };
 
   labels = {
+    enable = true;    # Auto-sync labels on shell entry (default: true)
     defaults = true;  # Include default labels (default: true)
     extra = [         # Additional labels
-      { name = "priority:high"; color = "ff0000"; }
+      { name = "priority:high"; color = "ff0000"; description = "High priority"; }
     ];
   };
   preCommit = {
@@ -140,13 +141,14 @@ let
   # Process labels config
   defaultLabels = import ./labels.nix;
   labelsConfig = if builtins.isAttrs labels then labels else { extra = labels; };
+  labelsEnabled = labelsConfig.enable or true;
   useDefaults = labelsConfig.defaults or true;
   extraLabels = labelsConfig.extra or [];
   allLabels = (if useDefaults then defaultLabels else []) ++ extraLabels;
 
   # Generate label args for git commands
   labelArgs = builtins.concatStringsSep " " (
-    map (l: "-l '${l.name}:${l.color}'") allLabels
+    map (l: "-l '${l.name}:${l.color}:${l.description or ""}'") allLabels
   );
 
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
@@ -163,11 +165,16 @@ in
 
   inherit git_ops;
 
+  labelSyncHook = if labelsEnabled then ''
+    ${git_ops}/bin/git_ops sync-labels &
+  '' else "";
+
   shellHook = ''
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
-    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck styleFormat styleAssert nukeSnapsCheck; }} ./.git/hooks/custom.sh
+    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck styleFormat styleAssert; }} ./.git/hooks/custom.sh
+    ${labelSyncHook}
   '';
 
   enabledPackages = [ git_ops ];

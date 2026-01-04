@@ -1,4 +1,4 @@
-{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleFormat ? true, styleAssert ? false, nukeSnapsCheck ? true,
+{ pkgs, pname, semverChecks ? false, traceyCheck ? false, styleFormat ? true, styleAssert ? false,
   # backwards compat
   styleCheck ? null,
 }:
@@ -17,20 +17,14 @@ let
   # If only format: run format (auto-fix, don't error on unfixable)
   # If only assert: run assert (error on any violation)
   styleCmd = if actualStyleFormat && actualStyleAssert then ''
-    rust_style format
+    codestyle format
     if [ $? -ne 0 ]; then
-      echo "rust_style: unfixable violations found"
+      echo "codestyle: unfixable violations found"
       exit 1
     fi
-  '' else if actualStyleFormat then "rust_style format || true"
-  else if actualStyleAssert then "rust_style assert"
+  '' else if actualStyleFormat then "codestyle format || true"
+  else if actualStyleAssert then "codestyle assert"
   else "";
-  # Nuke .pending-snap files (insta crate snapshots, - must always inline. Otherwise what's the point.)
-  nukeSnapsCmd = if nukeSnapsCheck then ''
-    for src_dir in $(fd -HI -t d -d 2 '^src$'); do
-      fd -HI -e pending-snap . "$src_dir" -x rm {} \;
-    done
-  '' else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"
     config_filepath_toml="''${HOME}/.config/${pname}.toml"
@@ -72,7 +66,6 @@ let
       ${semverChecksCmd}
       ${traceyCmd}
       ${styleCmd}
-      ${nukeSnapsCmd}
     fi
 
     rm commit >/dev/null 2>&1 # remove commit message text file if it exists

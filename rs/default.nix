@@ -6,7 +6,6 @@
   deny ? false,
   tracey ? true,
   style ? {},
-  nuke_snaps ? true,
   # build.rs options
   build ? {},
 }:
@@ -26,7 +25,6 @@ rs = v-utils.rs {
     format = true;   # Auto-fix style issues in pre-commit (default: true)
     check = false;   # Error on unfixable style issues (default: false)
   };
-  nuke_snaps = true; # Delete .pending-snap files before commit (insta crate, default: true)
   build = {
     enable = true;          # Generate build.rs (default: true)
     workspace = {           # Per-directory build.rs modules (default: { "./" = [ "git_version" "log_directives" ]; })
@@ -75,22 +73,28 @@ The shellHook will:
 - Copy cargo config to ./.cargo/config.toml
 - Copy build.rs to each directory in build.workspace (with write permissions for treefmt)
 - Copy deny.toml to ./deny.toml (if deny = true)
+- Check crates.io for newer versions of tracey/codestyle (warns if outdated)
 
 enabledPackages includes:
 - `tracey` - spec coverage tool (if tracey = true)
-- `rust_style` - custom style linter (if style.format or style.assert is true)
+- `codestyle` - code style linter and formatter (if style.format or style.check is true)
 '';
 } else
 
 let
   files = import ../files;
+  utils = import ../utils;
 
   buildEnable = build.enable or true;
   workspace = build.workspace or { "./" = [ "git_version" "log_directives" ]; };
 
+  # Package versions - update these when bumping
+  traceyVersion = "1.0.0";
+  codestyleVersion = "0.1.0";
+
   traceyPkg = pkgs.rustPlatform.buildRustPackage {
     pname = "tracey";
-    version = "1.0.0";
+    version = traceyVersion;
     src = pkgs.fetchFromGitHub {
       owner = "bearcove";
       repo = "tracey";
@@ -102,11 +106,27 @@ let
     doCheck = false;
   };
 
-  # rust_style is a cargo script - wrap it as executable
-  rustStyleScript = ./rust_style.rs;
-  rustStylePkg = pkgs.writeShellScriptBin "rust_style" ''
-    exec ${rustStyleScript} "$@"
-  '';
+  # codestyle from crates.io - requires nightly Rust
+  # Projects using this must have rust-overlay applied to their pkgs
+  codestylePkg =
+    let
+      nightlyRust = pkgs.rust-bin.nightly.latest.default;
+      nightlyPlatform = pkgs.makeRustPlatform {
+        rustc = nightlyRust;
+        cargo = nightlyRust;
+      };
+    in
+    nightlyPlatform.buildRustPackage {
+      pname = "codestyle";
+      version = codestyleVersion;
+      src = pkgs.fetchCrate {
+        pname = "codestyle";
+        version = codestyleVersion;
+        hash = "sha256-b/ydxEW8aSKSQdmUB7W0bJa0MT1R35cquuJzGbZgGwE=";
+      };
+      cargoHash = "sha256-r8NQv13fdgju4Ik3hQQ8uyJUq5G9fhJo3RadY9vS8fM=";
+      doCheck = false;
+    };
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
   # Handles both "./" and "./cli" and "./cli/" correctly
@@ -142,6 +162,11 @@ let
   styleFormat = style.format or true;
   styleAssert = style.check or false;
   styleEnabled = styleFormat || styleAssert;
+
+  # Version checks for bundled packages (runs in background on shell entry)
+  versionCheckHook =
+    (if tracey then utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; } else "") +
+    (if styleEnabled then utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; } else "");
 in
 {
   inherit rustfmtFile configFile denyFile styleFormat styleAssert;
@@ -155,11 +180,11 @@ in
     cp -f ${configFile} ./.cargo/config.toml
     ${buildHook}
     ${denyHook}
+    ${versionCheckHook}
   '';
 
   enabledPackages =
     (if tracey then [ traceyPkg ] else []) ++
-    (if styleEnabled then [ rustStylePkg ] else []);
+    (if styleEnabled then [ codestylePkg ] else []);
   traceyCheck = tracey;
-  nukeSnapsCheck = nuke_snaps;
 }
