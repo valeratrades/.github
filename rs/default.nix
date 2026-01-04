@@ -101,7 +101,7 @@ let
 
   # Package versions - update these when bumping
   traceyVersion = "1.0.0";
-  codestyleVersion = "0.2.2";
+  codestyleVersion = "0.2.3";
 
   # codestyle from crates.io - requires nightly Rust
   # Projects using this must have rust-overlay applied to their pkgs
@@ -121,9 +121,9 @@ let
       src = pkgs.fetchCrate {
         pname = "codestyle";
         version = codestyleVersion;
-        hash = "sha256-0A1RS8n99wT2HPG+OZkbrHVFkEJA3gpFxsprI1Ltucc=";
+        hash = "sha256-/mUVNL3hM2t7bzdyw+faxvPWyAZmnAHPBpLY/S3Wsrs=";
       };
-      cargoHash = "sha256-LLLAu0C0GPL9DWa1AbdHBEi2h2tnunOycObKwWr+yxc=";
+      cargoHash = "sha256-yzGjLggCr4xBNMAzBvdR2qc9gKO1il0OkCJbpAJSwSg=";
       nativeBuildInputs = [ pkgs.mold ];
       doCheck = false;
     };
