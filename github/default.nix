@@ -147,14 +147,20 @@ let
   allLabels = (if useDefaults then defaultLabels else []) ++ extraLabels;
 
   # Generate label args for git commands
+  # Need to escape for bash eval: escaped double quotes for nesting inside eval "..."
+  escapeForEval = s: builtins.replaceStrings ["\"" "\\" "$" "`"] ["\\\"" "\\\\" "\\$" "\\`"] s;
   labelArgs = builtins.concatStringsSep " " (
-    map (l: "-l '${l.name}:${l.color}:${l.description or ""}'") allLabels
+    map (l: ''-l \"'' + escapeForEval l.name + ":" + l.color + ":" + escapeForEval (l.description or "") + ''\"'') allLabels
   );
 
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
 
   # Process preCommit config
   semverChecks = preCommit.semverChecks or false;
+
+  labelSyncHook = if labelsEnabled then ''
+    ${git_ops}/bin/git_ops sync-labels &
+  '' else "";
 in
 {
   inherit workflows;
@@ -163,11 +169,7 @@ in
   appendCustom = ./append_custom.rs;
   preCommit = import ./pre_commit.nix;
 
-  inherit git_ops;
-
-  labelSyncHook = if labelsEnabled then ''
-    ${git_ops}/bin/git_ops sync-labels &
-  '' else "";
+  inherit git_ops labelSyncHook;
 
   shellHook = ''
     ${workflows.shellHook}

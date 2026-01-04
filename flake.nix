@@ -10,6 +10,8 @@ See individual component descriptions in their respective directories.'';
 
   outputs = { self, nixpkgs, flake-utils }:
     let
+      pname = "v-utils";
+
       # Version constants for bundled packages - update these when bumping
       traceyVersion = "1.0.0";
       codestyleVersion = "0.1.1";
@@ -24,6 +26,23 @@ See individual component descriptions in their respective directories.'';
       let
         pkgs = import nixpkgs { inherit system; };
         utils = import ./utils;
+        files = import ./files;
+
+        # GitHub module for gitignore (no labels - this is a fork of dtolnay)
+        github = (import ./github) {
+          inherit pkgs pname;
+          langs = [ "nix" ];
+          labels = { enable = false; };
+        };
+
+        # README generation
+        readme = (import ./readme_fw) {
+          inherit pkgs pname;
+          rootDir = ./.;
+          lastSupportedVersion = null;
+          defaults = true;
+          badges = [ "ci" ];
+        };
       in
       {
         devShells.default = pkgs.mkShell {
@@ -31,6 +50,8 @@ See individual component descriptions in their respective directories.'';
           shellHook = ''
             ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; }}
             ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; }}
+            cp -f ${(files.gitignore { inherit pkgs; langs = [];})} ./.gitignore
+            ${readme.shellHook}
           '';
         };
       }
