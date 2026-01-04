@@ -119,9 +119,11 @@ let
 
   # codestyle from crates.io - requires nightly Rust
   # Projects using this must have rust-overlay applied to their pkgs
+  # NB: Must pin the nightly date, as `latest` changes daily and invalidates cargoHash
+  codestyleNightly = "2025-10-10";
   codestylePkg =
     let
-      nightlyRust = pkgs.rust-bin.nightly.latest.default;
+      nightlyRust = pkgs.rust-bin.nightly.${codestyleNightly}.default;
       nightlyPlatform = pkgs.makeRustPlatform {
         rustc = nightlyRust;
         cargo = nightlyRust;
@@ -136,6 +138,7 @@ let
         hash = "sha256-QB5CD8A7kf1c+zTEc4GZlRDEUq4yWO3N67BL+RKgUg8=";
       };
       cargoHash = "sha256-LLLAu0C0GPL9DWa1AbdHBEi2h2tnunOycObKwWr+yxc=";
+      nativeBuildInputs = [ pkgs.mold ];
       doCheck = false;
     };
 

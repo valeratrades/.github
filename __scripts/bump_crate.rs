@@ -125,9 +125,13 @@ fn update_src_hash(content: &str, crate_name: &str, new_hash: &str) -> String {
     re.replace(content, format!("${{1}}{}${{2}}", new_hash)).to_string()
 }
 
+// NB: Must match the pinned nightly in rs/default.nix
+const CODESTYLE_NIGHTLY: &str = "2025-10-10";
+
 fn get_cargo_hash_from_build_error(crate_name: &str, version: &str, src_hash: &str, repo_root: &Path) -> Option<String> {
     // Build a minimal nix expression that uses fetchCargoVendor with a fake hash
     // to get the correct hash from the error message
+    let nightly_date = if crate_name == "codestyle" { CODESTYLE_NIGHTLY } else { "latest" };
     let nix_expr = format!(
         r#"
         let
@@ -137,7 +141,7 @@ fn get_cargo_hash_from_build_error(crate_name: &str, version: &str, src_hash: &s
             system = builtins.currentSystem;
             overlays = [ rust_flake.overlays.default ];
           }};
-          nightlyRust = pkgs.rust-bin.nightly.latest.default;
+          nightlyRust = pkgs.rust-bin.nightly."{nightly_date}".default;
           nightlyPlatform = pkgs.makeRustPlatform {{
             rustc = nightlyRust;
             cargo = nightlyRust;
@@ -155,6 +159,7 @@ fn get_cargo_hash_from_build_error(crate_name: &str, version: &str, src_hash: &s
           doCheck = false;
         }}
         "#,
+        nightly_date = nightly_date,
         crate_name = crate_name,
         version = version,
         src_hash = src_hash
@@ -290,6 +295,7 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
     };
 
     // Build a verification expression
+    let nightly_date = if crate_cfg.name == "codestyle" { CODESTYLE_NIGHTLY } else { "latest" };
     let verify_expr = format!(
         r#"
         let
@@ -299,7 +305,7 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
             system = builtins.currentSystem;
             overlays = [ rust_flake.overlays.default ];
           }};
-          nightlyRust = pkgs.rust-bin.nightly.latest.default;
+          nightlyRust = pkgs.rust-bin.nightly."{nightly_date}".default;
           nightlyPlatform = pkgs.makeRustPlatform {{
             rustc = nightlyRust;
             cargo = nightlyRust;
@@ -317,6 +323,7 @@ fn bump_crate(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String>
           doCheck = false;
         }}
         "#,
+        nightly_date = nightly_date,
         crate_name = crate_cfg.name,
         version = latest,
         src_hash = src_hash,
