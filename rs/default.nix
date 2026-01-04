@@ -101,21 +101,7 @@ let
 
   # Package versions - update these when bumping
   traceyVersion = "1.0.0";
-  codestyleVersion = "0.2.1";
-
-  traceyPkg = pkgs.rustPlatform.buildRustPackage {
-    pname = "tracey";
-    version = traceyVersion;
-    src = pkgs.fetchFromGitHub {
-      owner = "bearcove";
-      repo = "tracey";
-      rev = "71cfc9d4115612467b857c868a90cc6d90ed79f7";
-      hash = "sha256-maVPj9/PZzZDEmtMjemeuOCctDrU3JXaBNDwjFTRpks=";
-    };
-    cargoHash = "sha256-pk9Ky+/5P88zAbSJKbUwyvLNFIlHJzwqQCEQrorjlk0=";
-    cargoBuildFlags = [ "-p" "tracey" ];
-    doCheck = false;
-  };
+  codestyleVersion = "0.2.2";
 
   # codestyle from crates.io - requires nightly Rust
   # Projects using this must have rust-overlay applied to their pkgs
@@ -135,7 +121,7 @@ let
       src = pkgs.fetchCrate {
         pname = "codestyle";
         version = codestyleVersion;
-        hash = "sha256-QB5CD8A7kf1c+zTEc4GZlRDEUq4yWO3N67BL+RKgUg8=";
+        hash = "sha256-0A1RS8n99wT2HPG+OZkbrHVFkEJA3gpFxsprI1Ltucc=";
       };
       cargoHash = "sha256-LLLAu0C0GPL9DWa1AbdHBEi2h2tnunOycObKwWr+yxc=";
       nativeBuildInputs = [ pkgs.mold ];
@@ -176,6 +162,16 @@ let
   styleFormat = style.format or true;
   styleAssert = style.check or false;
   styleEnabled = styleFormat || styleAssert;
+
+  # binstall hook - installs tracey via cargo-binstall at shell entry
+  # Uses ~/.cargo/bin as install location
+  binstallHook = if tracey then ''
+    export PATH="$HOME/.cargo/bin:$PATH"
+    if ! command -v tracey &>/dev/null; then
+      echo "Installing tracey@${traceyVersion}..."
+      cargo binstall tracey@${traceyVersion} --no-confirm -q 2>/dev/null || cargo install tracey@${traceyVersion} -q
+    fi
+  '' else "";
 in
 {
   inherit rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags;
@@ -189,10 +185,12 @@ in
     cp -f ${configFile} ./.cargo/config.toml
     ${buildHook}
     ${denyHook}
+    ${binstallHook}
   '';
 
+  # cargo-binstall for tracey, codestyle built from source
   enabledPackages =
-    (if tracey then [ traceyPkg ] else []) ++
+    [ pkgs.cargo-binstall ] ++
     (if styleEnabled then [ codestylePkg ] else []);
   traceyCheck = tracey;
 }

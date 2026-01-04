@@ -27,7 +27,7 @@ serde_json = "1"
 use clap::{Parser, Subcommand};
 use serde::Deserialize;
 use std::collections::HashMap;
-use std::io::{self, BufRead, Write};
+use std::io::{self, BufRead, IsTerminal, Write};
 use std::process::Command;
 
 #[derive(Parser, Debug)]
@@ -107,32 +107,19 @@ fn get_remote_labels() -> Result<Vec<GhLabel>, String> {
 
 fn create_label(name: &str, color: &str, description: Option<&str>) -> bool {
     match description {
-        Some(desc) => {
-            println!("  Creating label '{}' with color #{}", name, color);
-            run_gh_success(&["label", "create", name, "--color", color, "--description", desc, "--force"])
-        }
-        None => {
-            println!("  Creating label '{}' with color #{}", name, color);
-            run_gh_success(&["label", "create", name, "--color", color, "--force"])
-        }
+        Some(desc) => run_gh_success(&["label", "create", name, "--color", color, "--description", desc, "--force"]),
+        None => run_gh_success(&["label", "create", name, "--color", color, "--force"]),
     }
 }
 
 fn update_label(name: &str, color: &str, description: Option<&str>) -> bool {
     match description {
-        Some(desc) => {
-            println!("  Updating label '{}' to color #{}", name, color);
-            run_gh_success(&["label", "edit", name, "--color", color, "--description", desc])
-        }
-        None => {
-            println!("  Updating label '{}' to color #{}", name, color);
-            run_gh_success(&["label", "edit", name, "--color", color])
-        }
+        Some(desc) => run_gh_success(&["label", "edit", name, "--color", color, "--description", desc]),
+        None => run_gh_success(&["label", "edit", name, "--color", color]),
     }
 }
 
 fn delete_label(name: &str) -> bool {
-    println!("  Deleting label '{}'", name);
     run_gh_success(&["label", "delete", name, "--yes"])
 }
 
@@ -257,8 +244,6 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
         println!("Color check passed.");
     }
 
-    println!("Fetching remote labels...");
-
     let remote_labels = match get_remote_labels() {
         Ok(labels) => labels,
         Err(e) => {
@@ -304,13 +289,13 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
         }
     }
 
-    // Find labels to delete
+    // Find labels to delete (only prompt in interactive mode)
     let to_delete: Vec<&String> = remote_map
         .keys()
         .filter(|name| !local_map.contains_key(*name))
         .collect();
 
-    if !to_delete.is_empty() {
+    if !to_delete.is_empty() && io::stdin().is_terminal() {
         println!("\nRemote labels not in local config:");
         for name in &to_delete {
             println!("  - {}", name);
@@ -327,10 +312,13 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
         }
     }
 
-    println!(
-        "\nSync complete: {} created, {} updated, {} deleted",
-        created, updated, deleted
-    );
+    // Only print summary if there were actual changes
+    if created > 0 || updated > 0 || deleted > 0 {
+        println!(
+            "Labels synced: {} created, {} updated, {} deleted",
+            created, updated, deleted
+        );
+    }
 }
 
 fn main() {
