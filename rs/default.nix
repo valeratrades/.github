@@ -126,8 +126,9 @@ let
       cargoHash = "sha256-yzGjLggCr4xBNMAzBvdR2qc9gKO1il0OkCJbpAJSwSg=";
       nativeBuildInputs = [ pkgs.mold ];
       doCheck = false;
-      checkPhase = "";
-      cargoTestFlags = [ "--skip" "*" ];
+      # Completely skip check phase - codestyle's integration tests spawn cargo builds
+      # that fail in the nix sandbox due to TMPDIR issues
+      dontCheck = true;
     };
 
   # Normalize directory path: ensure no trailing slash, then append /build.rs
