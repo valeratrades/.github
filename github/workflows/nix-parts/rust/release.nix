@@ -61,6 +61,11 @@ in
             targets = "\${{ matrix.target }}";
           };
         }
+        {
+          name = "Install mold";
+          "if" = "runner.os == 'Linux'";
+          uses = "rui314/setup-mold@v1";
+        }
       ] ++ (if aptDeps != [] then [{
           name = "Install dependencies";
           "if" = "runner.os == 'Linux'";

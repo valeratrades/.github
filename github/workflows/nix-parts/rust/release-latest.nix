@@ -69,7 +69,10 @@ let
                 targets = target;
               };
             }
-          ] ++ (if isLinux target && aptDeps != [] then [{
+          ] ++ (if isLinux target then [{
+              name = "Install mold";
+              uses = "rui314/setup-mold@v1";
+            }] else []) ++ (if isLinux target && aptDeps != [] then [{
               name = "Install dependencies";
               run = ''
                 sudo apt-get update
