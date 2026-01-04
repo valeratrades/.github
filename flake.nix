@@ -14,7 +14,7 @@ See individual component descriptions in their respective directories.'';
 
       # Version constants for bundled packages - update these when bumping
       traceyVersion = "1.0.0";
-      codestyleVersion = "0.1.1";
+      codestyleVersion = "0.2.0";
 
       parts = {
         files = (import ./files).description;
@@ -48,8 +48,9 @@ See individual component descriptions in their respective directories.'';
         devShells.default = pkgs.mkShell {
           packages = with pkgs; [ curl ];
           shellHook = ''
-            ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; }}
-            ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; }}
+            _bump_script="./__scripts/bump_crate.rs"
+            ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; bumpScript = "$_bump_script"; }}
+            ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; bumpScript = "$_bump_script"; }}
             cp -f ${(files.gitignore { inherit pkgs; langs = [];})} ./.gitignore
             ${readme.shellHook}
           '';

@@ -20,9 +20,10 @@ let
     }
   '';
 
-  # Generate shell command to check if a crate is outdated
+  # Generate shell command to check if a crate is outdated and auto-bump
   # Uses crates.io API to get latest version, with proper semver comparison
-  checkCrateVersion = { name, currentVersion }: ''
+  # If outdated and bumpScript is provided, runs the script to update
+  checkCrateVersion = { name, currentVersion, bumpScript ? null }: ''
     _check_crate_${builtins.replaceStrings ["-"] ["_"] name}() {
       local latest
       latest=$(curl -sf "https://crates.io/api/v1/crates/${name}" 2>/dev/null | \
@@ -35,11 +36,20 @@ let
         if [ "$lat_major" -gt "$cur_major" ] 2>/dev/null || \
            ([ "$lat_major" -eq "$cur_major" ] && [ "$lat_minor" -gt "$cur_minor" ]) 2>/dev/null || \
            ([ "$lat_major" -eq "$cur_major" ] && [ "$lat_minor" -eq "$cur_minor" ] && [ "$lat_patch" -gt "$cur_patch" ]) 2>/dev/null; then
-          echo "⚠️  [WARN] ${name} ${currentVersion} is outdated (latest: $latest)"
+          echo "⚠️  ${name} ${currentVersion} is outdated (latest: $latest), bumping..."
+          ${if bumpScript != null then ''
+          if ${bumpScript} ${name}; then
+            echo "✅ ${name} bumped to $latest. Please restart shell and commit changes."
+          else
+            echo "❌ Failed to bump ${name}"
+          fi
+          '' else ''
+          echo "   No bump script configured"
+          ''}
         fi
       fi
     }
-    _check_crate_${builtins.replaceStrings ["-"] ["_"] name} &
+    _check_crate_${builtins.replaceStrings ["-"] ["_"] name}
   '';
 in
 {

@@ -88,7 +88,7 @@ let
 
   # Package versions - update these when bumping
   traceyVersion = "1.0.0";
-  codestyleVersion = "0.1.1";
+  codestyleVersion = "0.2.0";
 
   traceyPkg = pkgs.rustPlatform.buildRustPackage {
     pname = "tracey";
@@ -120,9 +120,9 @@ let
       src = pkgs.fetchCrate {
         pname = "codestyle";
         version = codestyleVersion;
-        hash = "sha256-h+Y6JYsMfoSFajjYZhhakFdV2d4B2LeGYiejiqF9LjQ=";
+        hash = "sha256-W4MjDV2s0w5LuYHyanZJscu72qif+ncePZb01ZnOfJ0=";
       };
-      cargoHash = "sha256-5j+C4oI9LaZWl89huCD8kwPA66WZZ7m8RojuniHUuG8=";
+      cargoHash = "sha256-xLzrpeDIyhg2vGAs3doMV0eNgYJVnfF//fGiOmLww7I=";
       doCheck = false;
     };
 
