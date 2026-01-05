@@ -1,17 +1,18 @@
 let
   # Helper to allow both `default` and `defaults` as aliases for the same attribute.
-  # Usage: { defaults ? false, default ? defaults, ... }@args: let cfg = optionalDefaults args; in cfg.default
-  # This resolves the confusion between `default` and `defaults` by accepting either.
+  # When one is provided, both are set to the same value. When neither is provided, neither is set
+  # (allowing downstream `or` fallbacks to work correctly).
+  # Usage: let cfg = optionalDefaults args; in cfg.default or someDefault
   optionalDefaults = args:
     let
       hasDefault = args ? default;
       hasDefaults = args ? defaults;
-      # Priority: explicit `default` > explicit `defaults` > false
-      value = if hasDefault then args.default
-              else if hasDefaults then args.defaults
-              else false;
+      # Only add default/defaults if at least one was explicitly provided
+      value = if hasDefault then args.default else args.defaults;
     in
-    args // { default = value; defaults = value; };
+    if hasDefault || hasDefaults
+    then args // { default = value; defaults = value; }
+    else args;
 
   maskSecret = s: isSecret:
     if !isSecret then s else
