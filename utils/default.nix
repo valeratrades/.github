@@ -1,4 +1,18 @@
 let
+  # Helper to allow both `default` and `defaults` as aliases for the same attribute.
+  # Usage: { defaults ? false, default ? defaults, ... }@args: let cfg = optionalDefaults args; in cfg.default
+  # This resolves the confusion between `default` and `defaults` by accepting either.
+  optionalDefaults = args:
+    let
+      hasDefault = args ? default;
+      hasDefaults = args ? defaults;
+      # Priority: explicit `default` > explicit `defaults` > false
+      value = if hasDefault then args.default
+              else if hasDefaults then args.defaults
+              else false;
+    in
+    args // { default = value; defaults = value; };
+
   maskSecret = s: isSecret:
     if !isSecret then s else
     let len = builtins.stringLength s;
@@ -23,7 +37,14 @@ let
   # Generate shell command to check if a crate is outdated and auto-bump
   # Uses crates.io API to get latest version, with proper semver comparison
   # If outdated and bumpScript is provided, runs the script to update
-  checkCrateVersion = { name, currentVersion, bumpScript ? null }: ''
+  #
+  # Parameters:
+  #   name: crate name on crates.io
+  #   currentVersion: current version string (X.Y.Z)
+  #   bumpScript: path to bump_crate.rs script (optional)
+  #   mode: "binstall" or "source" (default: "binstall")
+  #   versionVarPostfix: postfix for version variable name (default: "Version")
+  checkCrateVersion = { name, currentVersion, bumpScript ? null, mode ? "binstall", versionVarPostfix ? "Version" }: ''
     _check_crate_${builtins.replaceStrings ["-"] ["_"] name}() {
       local latest
       latest=$(curl -sf "https://crates.io/api/v1/crates/${name}" 2>/dev/null | \
@@ -38,7 +59,7 @@ let
            ([ "$lat_major" -eq "$cur_major" ] && [ "$lat_minor" -eq "$cur_minor" ] && [ "$lat_patch" -gt "$cur_patch" ]) 2>/dev/null; then
           echo "⚠️  ${name} ${currentVersion} is outdated (latest: $latest), bumping..."
           ${if bumpScript != null then ''
-          if ${bumpScript} ${name}; then
+          if yes | ${bumpScript} --crate "${name}:${mode}" --version-var-postfix "${versionVarPostfix}"; then
             echo "✅ ${name} bumped to $latest. Please restart shell and commit changes."
           else
             echo "❌ Failed to bump ${name}"
@@ -86,5 +107,5 @@ in
       fi
     '';
 
-  inherit checkCrateVersion;
+  inherit checkCrateVersion optionalDefaults;
 }

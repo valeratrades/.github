@@ -83,6 +83,7 @@ enabledPackages includes:
 } else
 
 let
+  utils = import ../utils;
   files = import ../files;
 
   # Shared defaults across all languages
@@ -118,12 +119,14 @@ let
     langJobs ++ shared;
 
   # Process a jobs section (errors, warnings, or other)
-  # Takes: { default? = bool; augment? = [...]; exclude? = [...]; } or just a list (legacy)
+  # Takes: { default? = bool; defaults? = bool; augment? = [...]; exclude? = [...]; } or just a list (legacy)
+  # Accepts both `default` and `defaults` as aliases via optionalDefaults
   processJobsSection = category: sectionConfig: topDefault:
     let
       # Handle legacy list format
       isLegacyList = builtins.isList sectionConfig;
-      section = if isLegacyList then { augment = sectionConfig; } else sectionConfig;
+      sectionRaw = if isLegacyList then { augment = sectionConfig; } else sectionConfig;
+      section = utils.optionalDefaults sectionRaw;
 
       # Determine if defaults should be enabled for this section
       sectionDefault = section.default or topDefault;
@@ -145,8 +148,9 @@ let
     in
     filteredBase ++ augmentJobs;
 
-  # Get top-level default setting
-  topDefault = jobs.default or false;
+  # Get top-level default setting (accepts both `default` and `defaults`)
+  jobsNormalized = utils.optionalDefaults jobs;
+  topDefault = jobsNormalized.default;
 
   # Process each section
   jobsErrors = processJobsSection "errors" (jobs.errors or {}) topDefault;
@@ -157,11 +161,12 @@ let
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest;
   };
 
-  # Process labels config
+  # Process labels config (accepts both `default` and `defaults`)
   defaultLabels = import ./labels.nix;
-  labelsConfig = if builtins.isAttrs labels then labels else { extra = labels; };
+  labelsConfigRaw = if builtins.isAttrs labels then labels else { extra = labels; };
+  labelsConfig = utils.optionalDefaults labelsConfigRaw;
   labelsEnabled = labelsConfig.enable or true;
-  useDefaults = labelsConfig.defaults or true;
+  useDefaults = labelsConfig.default or true;
   extraLabels = labelsConfig.extra or [];
   allLabels = (if useDefaults then defaultLabels else []) ++ extraLabels;
 

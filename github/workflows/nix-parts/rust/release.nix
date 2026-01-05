@@ -2,7 +2,9 @@
 # Triggers on version tags (v*), builds for multiple platforms, uploads to GitHub Releases
 {
   # Set to true to use defaults, or customize individual fields
-  default ? false,
+  # Accepts both `default` and `defaults` as aliases
+  defaults ? false,
+  default ? defaults,
   targets ? [
     "x86_64-unknown-linux-gnu"
     "x86_64-apple-darwin"

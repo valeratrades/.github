@@ -34,6 +34,7 @@ Standalone workflows:
 
 # Otherwise, generate workflows
 let
+  utils = import ../../../utils;
   files = {
 		# shared {{{
     base = ./shared/base.nix;
@@ -114,13 +115,16 @@ let
       workflow_dispatch = { };
     };
   };
-  # Check if release config is enabled (default = true required, custom fields override defaults)
+  # Check if release config is enabled (default/defaults = true required, custom fields override defaults)
+  # Accepts both `default` and `defaults` via optionalDefaults
+  releaseNormalized = if builtins.isAttrs release then utils.optionalDefaults release else release;
+  releaseLatestNormalized = if builtins.isAttrs releaseLatest then utils.optionalDefaults releaseLatest else releaseLatest;
   releaseEnabled = release != null && (
-    (builtins.isAttrs release && (release.default or false))
+    (builtins.isAttrs releaseNormalized && releaseNormalized.default)
     || release == true
   );
   releaseLatestEnabled = releaseLatest != null && (
-    (builtins.isAttrs releaseLatest && (releaseLatest.default or false))
+    (builtins.isAttrs releaseLatestNormalized && releaseLatestNormalized.default)
     || releaseLatest == true
   );
 

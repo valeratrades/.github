@@ -3,7 +3,9 @@
 # Useful for distributing binaries without semantic versioning
 {
   # Set to true to use defaults, or customize individual fields
-  default ? false,
+  # Accepts both `default` and `defaults` as aliases
+  defaults ? false,
+  default ? defaults,
   targets ? [
     "x86_64-unknown-linux-gnu"
     "aarch64-unknown-linux-gnu"

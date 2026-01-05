@@ -1,24 +1,25 @@
 # Supports both `.md` and `.typ` file sources
-# When `defaults = true`, `licenses` defaults to Blue Oak 1.0.0.
+# When `defaults = true` (or `default = true`), `licenses` defaults to Blue Oak 1.0.0.
 # Note: `rootDir` cannot have a default - paths resolve at parse time, so caller must always pass `rootDir = ./.;`
 #
 # licenses: list of { outPath?, license }
 #   - outPath: (optional, defaults to "LICENSE") path in the repo where the license will be copied
 #   - license: attrset from files.licenses.* with { name, path }
-{
+args@{
   pkgs,
   rootDir,
   pname,
   badges,
   lastSupportedVersion,
   defaults ? false,
+  default ? defaults,
   licenses ? null,
 }:
 
 let
   defaultLicense = { name = "Blue Oak 1.0.0"; path = ../files/licenses/blue_oak.md; };
   licensesRaw = if licenses != null then licenses else
-    assert defaults || throw "licenses is required when defaults = false";
+    assert default || throw "licenses is required when defaults = false";
     [{ license = defaultLicense; }];
 
   # Normalize licenses: add default outPath if missing
