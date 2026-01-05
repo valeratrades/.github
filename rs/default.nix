@@ -147,17 +147,20 @@ let
   styleAssert = style.check or false;
   styleEnabled = styleFormat || styleAssert;
 
-  # binstall hook - installs tracey and codestyle via cargo-binstall at shell entry
+  # binstall hook - installs/upgrades tracey and codestyle via cargo-binstall at shell entry
   # Uses ~/.cargo/bin as install location
+  # Checks version and upgrades if installed version differs from expected
   binstallHook = ''
     export PATH="$HOME/.cargo/bin:$PATH"
   '' + (if tracey then ''
-    if ! command -v tracey &>/dev/null; then
+    _tracey_installed=$(cargo install --list 2>/dev/null | grep "^tracey v" | grep -oP '\d+\.\d+\.\d+' || echo "")
+    if [ "$_tracey_installed" != "${traceyVersion}" ]; then
       echo "Installing tracey@${traceyVersion}..."
       cargo binstall tracey@${traceyVersion} --no-confirm -q 2>/dev/null || cargo install tracey@${traceyVersion} -q
     fi
   '' else "") + (if styleEnabled then ''
-    if ! command -v codestyle &>/dev/null; then
+    _codestyle_installed=$(codestyle --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "")
+    if [ "$_codestyle_installed" != "${codestyleVersion}" ]; then
       echo "Installing codestyle@${codestyleVersion}..."
       cargo binstall codestyle@${codestyleVersion} --no-confirm -q 2>/dev/null || cargo install codestyle@${codestyleVersion} -q
     fi
