@@ -1,12 +1,21 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, style ? {}, release ? null, releaseLatest ? null,
-  # Backwards compat: direct styleFormat/styleAssert/moduleFlags override style
-  styleFormat ? null, styleAssert ? null, moduleFlags ? null,
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {},
+  # Pass the rs module output to inherit style/tracey settings automatically
+  rs ? null,
+  # Or override individually (these take precedence over rs)
+  traceyCheck ? null, style ? null, styleFormat ? null, styleAssert ? null, moduleFlags ? null,
+  release ? null, releaseLatest ? null,
 }:
 
-# Compute style settings from style parameter (mirroring rs/default.nix)
-# Direct parameters (styleFormat, styleAssert, moduleFlags) take precedence for backwards compat
+# Priority: explicit params > rs module > defaults
 let
-  styleModules = style.modules or {};
+  # Extract from rs if provided
+  rsTraceyCheck = if rs != null then (rs.traceyCheck or false) else false;
+  rsStyleFormat = if rs != null then (rs.styleFormat or true) else true;
+  rsStyleAssert = if rs != null then (rs.styleAssert or false) else false;
+  rsModuleFlags = if rs != null then (rs.moduleFlags or "") else "";
+
+  # Compute from style parameter if provided (for standalone usage without rs)
+  styleModules = if style != null then (style.modules or {}) else {};
   valueToString = value:
     if builtins.isBool value then (if value then "true" else "false")
     else builtins.toString value;
@@ -15,9 +24,20 @@ let
       "--${builtins.replaceStrings ["_"] ["-"] name}=${valueToString value}"
     ) styleModules)
   );
-  actualStyleFormat = if styleFormat != null then styleFormat else (style.format or true);
-  actualStyleAssert = if styleAssert != null then styleAssert else (style.check or false);
-  actualModuleFlags = if moduleFlags != null then moduleFlags else computedModuleFlags;
+  styleParamFormat = if style != null then (style.format or null) else null;
+  styleParamAssert = if style != null then (style.check or null) else null;
+
+  # Final values: explicit > style param > rs > defaults
+  actualTraceyCheck = if traceyCheck != null then traceyCheck else rsTraceyCheck;
+  actualStyleFormat = if styleFormat != null then styleFormat
+                      else if styleParamFormat != null then styleParamFormat
+                      else rsStyleFormat;
+  actualStyleAssert = if styleAssert != null then styleAssert
+                      else if styleParamAssert != null then styleParamAssert
+                      else rsStyleAssert;
+  actualModuleFlags = if moduleFlags != null then moduleFlags
+                      else if computedModuleFlags != "" then computedModuleFlags
+                      else rsModuleFlags;
 in
 
 # If called with just nixpkgs (for flake description), return description attribute
@@ -28,7 +48,7 @@ GitHub integration module combining workflows, git hooks, and related tooling.
 Usage:
 ```nix
 github = v-utils.github {
-  inherit pkgs pname;
+  inherit pkgs pname rs;  # Pass rs to inherit style/tracey settings
   lastSupportedVersion = "nightly-1.86";
   langs = [ "rs" ];  # For gitignore generation
 
@@ -62,13 +82,8 @@ github = v-utils.github {
   preCommit = {
     semverChecks = false;  # Run cargo-semver-checks (default: false, can be very slow)
   };
-  style = {               # Codestyle settings (same format as rs.style)
-    format = true;        # Auto-fix style issues in pre-commit (default: true)
-    check = false;        # Error on unfixable style issues (default: false)
-    modules = {           # Toggle individual codestyle checks
-      no_chrono = "false";
-    };
-  };
+  # Style settings are inherited from rs module automatically.
+  # Override with style = { ... } or traceyCheck = ... if needed.
 
   # Binary releases for cargo-binstall (triggers on v* tags)
   release = { default = true; };  # Use defaults
@@ -227,7 +242,7 @@ in
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
-    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; }} ./.git/hooks/custom.sh
+    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
   '';
 
