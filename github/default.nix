@@ -1,4 +1,24 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, styleFormat ? true, styleAssert ? false, moduleFlags ? "", release ? null, releaseLatest ? null }:
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {}, traceyCheck ? false, style ? {}, release ? null, releaseLatest ? null,
+  # Backwards compat: direct styleFormat/styleAssert/moduleFlags override style
+  styleFormat ? null, styleAssert ? null, moduleFlags ? null,
+}:
+
+# Compute style settings from style parameter (mirroring rs/default.nix)
+# Direct parameters (styleFormat, styleAssert, moduleFlags) take precedence for backwards compat
+let
+  styleModules = style.modules or {};
+  valueToString = value:
+    if builtins.isBool value then (if value then "true" else "false")
+    else builtins.toString value;
+  computedModuleFlags = builtins.concatStringsSep " " (
+    builtins.attrValues (builtins.mapAttrs (name: value:
+      "--${builtins.replaceStrings ["_"] ["-"] name}=${valueToString value}"
+    ) styleModules)
+  );
+  actualStyleFormat = if styleFormat != null then styleFormat else (style.format or true);
+  actualStyleAssert = if styleAssert != null then styleAssert else (style.check or false);
+  actualModuleFlags = if moduleFlags != null then moduleFlags else computedModuleFlags;
+in
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -41,6 +61,13 @@ github = v-utils.github {
   };
   preCommit = {
     semverChecks = false;  # Run cargo-semver-checks (default: false, can be very slow)
+  };
+  style = {               # Codestyle settings (same format as rs.style)
+    format = true;        # Auto-fix style issues in pre-commit (default: true)
+    check = false;        # Error on unfixable style issues (default: false)
+    modules = {           # Toggle individual codestyle checks
+      no_chrono = "false";
+    };
   };
 
   # Binary releases for cargo-binstall (triggers on v* tags)
@@ -200,7 +227,7 @@ in
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
-    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck styleFormat styleAssert moduleFlags; }} ./.git/hooks/custom.sh
+    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks traceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
   '';
 

@@ -12,11 +12,16 @@
   rust,
 }:
 # Normalize style.modules: { instrument = true; loops = false; } -> "--instrument=true --loops=false"
+# Accepts both booleans and strings as values
 let
   styleModules = style.modules or {};
+  # Convert value to string, handling both bool and string inputs
+  valueToString = value:
+    if builtins.isBool value then (if value then "true" else "false")
+    else builtins.toString value;
   moduleFlags = builtins.concatStringsSep " " (
     builtins.attrValues (builtins.mapAttrs (name: value:
-      "--${name}=${if value then "true" else "false"}"
+      "--${builtins.replaceStrings ["_"] ["-"] name}=${valueToString value}"
     ) styleModules)
   );
 in
