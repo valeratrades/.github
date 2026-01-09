@@ -20,13 +20,20 @@ let
   # If only format: run format (auto-fix, don't error on unfixable)
   # If only assert: run assert (error on any violation)
   styleCmd = if actualStyleFormat && actualStyleAssert then ''
+    echo "Running: ${codestyleBase} format ./"
     ${codestyleBase} format ./
     if [ $? -ne 0 ]; then
       echo "codestyle: unfixable violations found"
       exit 1
     fi
-  '' else if actualStyleFormat then "${codestyleBase} format ./ || true"
-  else if actualStyleAssert then "${codestyleBase} assert ./"
+  '' else if actualStyleFormat then ''
+    echo "Running: ${codestyleBase} format ./"
+    ${codestyleBase} format ./ || true
+  ''
+  else if actualStyleAssert then ''
+    echo "Running: ${codestyleBase} assert ./"
+    ${codestyleBase} assert ./
+  ''
   else "";
   script = ''
     config_filepath_nix="''${HOME}/.config/${pname}.nix"
