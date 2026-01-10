@@ -3,7 +3,7 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   rs ? null,
   # Or override individually (these take precedence over rs)
   traceyCheck ? null, style ? null, styleFormat ? null, styleAssert ? null, moduleFlags ? null,
-  release ? null, releaseLatest ? null,
+  release ? null, releaseLatest ? null, gitlabSync ? null,
 }:
 
 # Priority: explicit params > rs module > defaults
@@ -103,6 +103,10 @@ github = v-utils.github {
     aptDeps = [ "libssl-dev" ];
     branch = "release";
   };
+
+  # GitLab mirror sync (triggers on any push)
+  gitlabSync = { default = true; };
+  # Requires GITLAB_MIRROR_URL and GITLAB_TOKEN secrets in GitHub repo
 };
 ```
 
@@ -200,7 +204,7 @@ let
   jobsOther = processJobsSection "other" (jobs.other or {}) topDefault;
 
   workflows = import ./workflows/nix-parts {
-    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest;
+    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest gitlabSync;
   };
 
   # Process labels config (accepts both `default` and `defaults`)

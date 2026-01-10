@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null }:
+args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null, gitlabSync ? null }:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -29,6 +29,9 @@ Standalone workflows:
 - releaseLatest = { default = true; } or releaseLatest = { platforms = [...]; ... }
     Rolling "latest" releases per platform (triggers on branch push)
     Available platforms: debian, windows, macos
+- gitlabSync = { default = true; }
+    Sync to GitLab mirror (triggers on push to any branch/tag)
+    Requires GITLAB_MIRROR_URL and GITLAB_TOKEN secrets
 '';
 } else
 
@@ -40,6 +43,7 @@ let
     base = ./shared/base.nix;
     tokei = ./shared/tokei.nix;
     loc-badge = ./shared/loc-badge.nix;
+    sync-gitlab = ./shared/sync-gitlab.nix;
 		#,}}}
 
 		# rust {{{
@@ -119,6 +123,7 @@ let
   # Accepts both `default` and `defaults` via optionalDefaults
   releaseNormalized = if builtins.isAttrs release then utils.optionalDefaults release else release;
   releaseLatestNormalized = if builtins.isAttrs releaseLatest then utils.optionalDefaults releaseLatest else releaseLatest;
+  gitlabSyncNormalized = if builtins.isAttrs gitlabSync then utils.optionalDefaults gitlabSync else gitlabSync;
   releaseEnabled = release != null && (
     (builtins.isAttrs releaseNormalized && releaseNormalized.default)
     || release == true
@@ -126,6 +131,10 @@ let
   releaseLatestEnabled = releaseLatest != null && (
     (builtins.isAttrs releaseLatestNormalized && releaseLatestNormalized.default)
     || releaseLatest == true
+  );
+  gitlabSyncEnabled = gitlabSync != null && (
+    (builtins.isAttrs gitlabSyncNormalized && gitlabSyncNormalized.default)
+    || gitlabSync == true
   );
 
   # Standalone release workflow (binstall-compatible, triggers on v* tags)
@@ -147,6 +156,15 @@ let
       (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" "default" ])
     ) spec.workflows
   else {};
+
+  # GitLab sync workflow (triggers on any push)
+  gitlabSyncWorkflow = if gitlabSyncEnabled then
+    let
+      syncSpec = import files.sync-gitlab (
+        if builtins.isAttrs gitlabSync then gitlabSync else { default = true; }
+      );
+    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs syncSpec [ "standalone" "default" ])
+  else null;
 
   workflows = {
     #TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
@@ -190,9 +208,13 @@ let
       cp -f ${wf} ./.github/workflows/release-${name}.yml
     '') releaseLatestWorkflows
   );
+
+  gitlabSyncHook = if gitlabSyncWorkflow != null then ''
+    cp -f ${gitlabSyncWorkflow} ./.github/workflows/sync_gitlab.yml
+  '' else "";
 in
 workflows // {
-  inherit releaseWorkflow releaseLatestWorkflows;
+  inherit releaseWorkflow releaseLatestWorkflows gitlabSyncWorkflow;
   shellHook = ''
     mkdir -p ./.github/workflows
     cp -f ${workflows.errors} ./.github/workflows/errors.yml
@@ -200,5 +222,6 @@ workflows // {
     cp -f ${workflows.other} ./.github/workflows/other.yml
     ${releaseHook}
     ${releaseLatestHook}
+    ${gitlabSyncHook}
   '';
 }
