@@ -50,6 +50,7 @@
           uses = "actions/checkout@v4";
           "with" = {
             fetch-depth = 0;
+            lfs = true;
           };
         }
         {
@@ -107,6 +108,11 @@
 
             # Add GitLab remote
             git remote add gitlab "${"$"}{{ secrets.GITLAB_MIRROR_URL }}"
+
+            # Push LFS objects if repo uses LFS (no-op if not)
+            if [ -f ".gitattributes" ] && grep -q "filter=lfs" .gitattributes; then
+              git lfs push --all gitlab
+            fi
 
             # Push all branches and tags
             git push gitlab --all --force
