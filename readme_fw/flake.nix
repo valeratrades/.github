@@ -24,14 +24,9 @@
         pname = "readme-fw";
         readme = readme-fw {
           inherit pkgs pname;
+          defaults = true;
           lastSupportedVersion = "nightly-1.86";
           rootDir = ./.;
-          licenses = [
-            {
-              name = "Blue Oak 1.0.0";
-              outPath = "LICENSE";
-            }
-          ];
           badges = [
             "msrv"
             "crates_io"
@@ -57,9 +52,7 @@
 
         devShells.default = pkgs.mkShell {
           buildInputs = [ pkgs.typst pkgs.pandoc ];
-          shellHook = ''
-            cp -f ${readme} ./README.md
-
+          shellHook = readme.shellHook + ''
             # Generate workflows
             mkdir -p .github/workflows
             cp -f ${workflows.other} .github/workflows/other.yml
