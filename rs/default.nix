@@ -152,9 +152,10 @@ let
   styleAssert = style.check or false;
   styleEnabled = styleFormat || styleAssert;
 
-  # binstall hook - installs/upgrades tracey and codestyle via cargo-binstall at shell entry
+  # binstall hook - installs/upgrades tracey via cargo-binstall at shell entry
   # Uses ~/.cargo/bin as install location
   # Checks version and upgrades if installed version differs from expected
+  # Note: codestyle is installed lazily at pre-commit time, not here
   binstallHook = ''
     export PATH="$HOME/.cargo/bin:$PATH"
   '' + (if tracey then ''
@@ -163,16 +164,19 @@ let
       echo "Installing tracey@${traceyVersion}..."
       cargo binstall tracey@${traceyVersion} --no-confirm -q 2>/dev/null || cargo install tracey@${traceyVersion} -q
     fi
-  '' else "") + (if styleEnabled then ''
+  '' else "");
+
+  # Lazy install hook for codestyle - called from pre-commit, not shell entry
+  codestyleLazyInstall = if styleEnabled then ''
     _codestyle_installed=$(codestyle --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "")
     if [ "$_codestyle_installed" != "${codestyleVersion}" ]; then
       echo "Installing codestyle@${codestyleVersion}..."
       cargo binstall codestyle@${codestyleVersion} --no-confirm -q 2>/dev/null || cargo install codestyle@${codestyleVersion} -q
     fi
-  '' else "");
+  '' else "";
 in
 {
-  inherit rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags;
+  inherit rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags codestyleLazyInstall;
 
   # For backwards compatibility, expose the first build file
   buildFile = makeBuildFile (workspace.${builtins.head workspaceDirs});

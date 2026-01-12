@@ -13,6 +13,7 @@ let
   rsStyleFormat = if rs != null then (rs.styleFormat or true) else true;
   rsStyleAssert = if rs != null then (rs.styleAssert or false) else false;
   rsModuleFlags = if rs != null then (rs.moduleFlags or "") else "";
+  rsCodestyleLazyInstall = if rs != null then (rs.codestyleLazyInstall or "") else "";
 
   # Compute from style parameter if provided (for standalone usage without rs)
   styleModules = if style != null then (style.modules or {}) else {};
@@ -246,7 +247,7 @@ in
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
-    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; }} ./.git/hooks/custom.sh
+    cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
   '';
 

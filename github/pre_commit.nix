@@ -1,4 +1,6 @@
 { pkgs, pname, semverChecks ? false, traceyCheck ? false, styleFormat ? true, styleAssert ? false, moduleFlags ? "",
+  # Lazy install hook for codestyle - runs at pre-commit time instead of shell entry
+  codestyleLazyInstall ? "",
   # backwards compat
   styleCheck ? null,
 }:
@@ -16,10 +18,14 @@ let
   # Build codestyle command with module flags
   # New interface: codestyle rust [--module=bool...] <format|assert> <path>
   codestyleBase = "codestyle rust ${moduleFlags}";
+  # Lazy install ensures codestyle is available before running (only installs if missing/outdated)
+  lazyInstallPrefix = if codestyleLazyInstall != "" then codestyleLazyInstall else "";
   # If both format and assert are true: run format and error if it had unfixable issues
   # If only format: run format (auto-fix, don't error on unfixable)
   # If only assert: run assert (error on any violation)
+  # Each branch includes lazyInstallPrefix to ensure codestyle is installed before use
   styleCmd = if actualStyleFormat && actualStyleAssert then ''
+    ${lazyInstallPrefix}
     echo "Running: ${codestyleBase} format ./"
     ${codestyleBase} format ./
     if [ $? -ne 0 ]; then
@@ -27,10 +33,12 @@ let
       exit 1
     fi
   '' else if actualStyleFormat then ''
+    ${lazyInstallPrefix}
     echo "Running: ${codestyleBase} format ./"
     ${codestyleBase} format ./ || true
   ''
   else if actualStyleAssert then ''
+    ${lazyInstallPrefix}
     echo "Running: ${codestyleBase} assert ./"
     ${codestyleBase} assert ./
   ''
