@@ -14,7 +14,7 @@ See individual component descriptions in their respective directories.'';
 
       # Version constants for bundled packages - update these when bumping
       traceyVersion = "1.0.0";
-      codestyleVersion = "0.2.12";
+      codestyleVersion = "0.2.13";
 
       parts = {
         files = (import ./files).description;
