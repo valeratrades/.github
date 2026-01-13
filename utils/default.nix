@@ -109,4 +109,26 @@ in
     '';
 
   inherit checkCrateVersion optionalDefaults;
+
+  # Combine multiple v-utils modules into a single shell configuration
+  # Extracts enabledPackages and shellHook from each module and combines them
+  #
+  # Usage:
+  #   combined = v-utils.utils.combineModules [ rs github readme ];
+  #   devShells.default = pkgs.mkShell {
+  #     packages = combined.enabledPackages;
+  #     shellHook = combined.shellHook;
+  #   };
+  #
+  # Each module should have optional `enabledPackages` (list) and `shellHook` (string) attributes.
+  # Missing attributes are treated as empty.
+  combineModules = modules:
+    let
+      getPackages = m: m.enabledPackages or [];
+      getHook = m: m.shellHook or "";
+    in
+    {
+      enabledPackages = builtins.concatLists (map getPackages modules);
+      shellHook = builtins.concatStringsSep "\n" (builtins.filter (h: h != "") (map getHook modules));
+    };
 }

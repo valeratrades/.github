@@ -230,8 +230,20 @@ let
   # can be very slow
   semverChecks = preCommit.semverChecks or false;
 
+  # Label sync runs silently in background to avoid blocking shell startup.
+  # On failure, it writes to a lock file. Next shell entry detects the lock
+  # and runs sync sequentially with full output so errors are visible.
   labelSyncHook = if labelsEnabled then ''
-    ${git_ops}/bin/git_ops sync-labels &
+    _label_sync_lock="/tmp/$(echo -n "$PWD" | sha256sum | cut -d' ' -f1).lock"
+    if [[ -f "$_label_sync_lock" ]]; then
+      echo "Previous label sync failed, running with output..."
+      if ${git_ops}/bin/git_ops sync-labels; then
+        rm -f "$_label_sync_lock"
+      fi
+    else
+      (${git_ops}/bin/git_ops sync-labels 2>&1 || echo "$?" > "$_label_sync_lock") &
+      disown
+    fi
   '' else "";
 in
 {
