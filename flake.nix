@@ -43,7 +43,7 @@ See individual component descriptions in their respective directories.'';
           shellHook = ''
             _bump_script="./__scripts/bump_crate.rs"
             ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; bumpScript = "$_bump_script"; }}
-            ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; bumpScript = "$_bump_script"; }}
+            # codestyle version check runs lazily on pre-commit, not shell entry
             cp -f ${(files.gitignore { inherit pkgs; langs = [];})} ./.gitignore
             ${readme.shellHook}
           '';
