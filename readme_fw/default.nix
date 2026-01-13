@@ -338,4 +338,5 @@ README_EOF
 in
 {
   inherit readme shellHook;
+  enabledPackages = [];
 }

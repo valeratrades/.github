@@ -14,8 +14,7 @@
       };
 
       github = v-utils.github {
-        inherit pkgs pname;
-        inherit (rs) styleFormat styleAssert;
+        inherit pkgs pname rs;
         langs = [ "rs" ];
         jobs.default = true;
       };
@@ -27,15 +26,14 @@
         defaults = true;
         badges = [ "msrv" "crates_io" "docs_rs" "loc" "ci" ];
       };
+
+      # Combine all modules - automatically collects enabledPackages and shellHook
+      combined = v-utils.utils.combineModules [ rs github readme ];
     in
     {
       devShells.default = pkgs.mkShell {
-        packages = rs.enabledPackages ++ github.enabledPackages;
-        shellHook = ''
-          ${rs.shellHook}
-          ${github.shellHook}
-          ${readme.shellHook}
-        '';
+        inherit (combined) shellHook;
+        packages = combined.enabledPackages;
       };
     };
 }
