@@ -20,6 +20,8 @@ Notice how you can follow it both from the source file for this section (being [
 Test links:
 - Inner file (same dir): [inner test file](./.readme_assets/_.test_link_inner.txt)
 - Outer file (parent dir): [outer test file](./_.test_link_outter.txt)
+- Bare bracket inner: [./.readme_assets/_.test_link_inner.txt]
+- Bare bracket outer: [./_.test_link_outter.txt]
 
 ### Expected files in `.readme_assets/`
 

@@ -142,8 +142,8 @@ let
 
           contentWithPaths = if isMd && exists then
             builtins.replaceStrings
-              [ "(./" "(../" ]
-              [ "(./.readme_assets/" "(./" ]
+              [ "(./" "(../" "[./" "[../" ]
+              [ "(./.readme_assets/" "(./" "[./.readme_assets/" "[./" ]
               rawContent
           else rawContent;
 
