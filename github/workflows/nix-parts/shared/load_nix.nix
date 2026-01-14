@@ -24,7 +24,8 @@ if !hasPackages then null else
         name = "Cache packages";
         run = ''
           # Pre-fetch packages into nix store so they're cached for dependent jobs
-          nix shell ${builtins.concatStringsSep " " (map (name: "nixpkgs#${name}") packages)} -c true
+          # Use nix-shell which properly sets up env vars like PKG_CONFIG_PATH
+          nix-shell -p ${builtins.concatStringsSep " " packages} --run "echo packages cached"
         '';
       }
     ];

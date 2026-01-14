@@ -55,13 +55,13 @@ let
   # Check if section has nix packages
   hasNixPackages = installConfig: (installConfig.packages or []) != [];
 
-  # Generate nix shell prefix for wrapping commands
+  # Generate nix-shell prefix for wrapping commands (sets up PKG_CONFIG_PATH etc)
   nixShellPrefix = installConfig:
     let
       packages = installConfig.packages or [];
     in
     if packages == [] then ""
-    else "nix shell ${builtins.concatStringsSep " " (map (name: "nixpkgs#${name}") packages)} -c ";
+    else "nix-shell -p ${builtins.concatStringsSep " " packages} --run ";
 
   files = {
 		# shared {{{
@@ -151,15 +151,16 @@ let
         valueWithHookPre // { steps = beforeAndCheckout ++ installSteps ++ afterCheckout; }
       else valueWithHookPre;
 
-      # Wrap run commands in nix shell if packages are specified
+      # Wrap run commands in nix-shell if packages are specified
       shellPrefix = nixShellPrefix installConfig;
       wrapStep = step:
         if shellPrefix == "" then step
         else if step ? run then
-          # Wrap the run command in nix shell, but skip if it's already a nix command
+          # Wrap the run command in nix-shell, but skip if it's already a nix command or echo
           if builtins.substring 0 4 step.run == "nix " then step
+          else if builtins.substring 0 9 step.run == "nix-shell" then step
           else if builtins.substring 0 5 step.run == "echo " then step
-          else step // { run = "${shellPrefix}bash -c '${builtins.replaceStrings ["'"] ["'\\''"] step.run}'"; }
+          else step // { run = "${shellPrefix}\"${builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] step.run}\""; }
         else step;
       valueWithWrappedRuns = if needsNix then
         valueWithInstall // { steps = map wrapStep valueWithInstall.steps; }
