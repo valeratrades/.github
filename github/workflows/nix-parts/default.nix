@@ -56,12 +56,15 @@ let
   hasNixPackages = installConfig: (installConfig.packages or []) != [];
 
   # Generate nix-shell prefix for wrapping commands (sets up PKG_CONFIG_PATH etc)
+  # We need to also set LD_LIBRARY_PATH for runtime library loading
   nixShellPrefix = installConfig:
     let
       packages = installConfig.packages or [];
+      pkgList = builtins.concatStringsSep " " packages;
     in
     if packages == [] then ""
-    else "nix-shell -p ${builtins.concatStringsSep " " packages} --run ";
+    # Use --command with bash to set LD_LIBRARY_PATH from buildInputs before running
+    else "nix-shell -p ${pkgList} --command ";
 
   files = {
 		# shared {{{
@@ -152,7 +155,15 @@ let
       else valueWithHookPre;
 
       # Wrap run commands in nix-shell if packages are specified
+      # Also set LD_LIBRARY_PATH for runtime library loading (needed on non-NixOS systems like GHA Ubuntu)
       shellPrefix = nixShellPrefix installConfig;
+      packages = installConfig.packages or [];
+      pkgList = builtins.concatStringsSep " " packages;
+      # Build LD_LIBRARY_PATH setup using nix-build to get exact store paths
+      # This is needed on non-NixOS systems (like GHA Ubuntu) where runtime libraries aren't in default search paths
+      ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
+        ''export LD_LIBRARY_PATH=\"$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\''${LD_LIBRARY_PATH:+:}\$LD_LIBRARY_PATH\" && ''
+      ) packages);
       wrapStep = step:
         if shellPrefix == "" then step
         else if step ? run then
@@ -160,7 +171,7 @@ let
           if builtins.substring 0 4 step.run == "nix " then step
           else if builtins.substring 0 9 step.run == "nix-shell" then step
           else if builtins.substring 0 5 step.run == "echo " then step
-          else step // { run = "${shellPrefix}\"${builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] step.run}\""; }
+          else step // { run = "nix-shell -p ${pkgList} --command \"${ldLibPathSetup}${builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] step.run}\""; }
         else step;
       valueWithWrappedRuns = if needsNix then
         valueWithInstall // { steps = map wrapStep valueWithInstall.steps; }
