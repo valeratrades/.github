@@ -42,11 +42,18 @@ Standalone workflows:
 let
   utils = import ../../../utils;
 
-  # Generate install steps from install config: { packages = [ "pkg1" ... ]; apt = [ ... ]; }
+  # Generate load_nix workflow for a section if it has packages
+  makeLoadNixWorkflow = installConfig:
+    import ./shared/load_nix.nix { packages = installConfig.packages or []; };
+
+  # Generate install steps for jobs (just cache restore, actual install done by load_nix)
   makeInstallSteps = installConfig: import ./shared/install.nix {
     packages = installConfig.packages or [];
     apt = installConfig.apt or [];
   };
+
+  # Check if section has nix packages
+  hasNixPackages = installConfig: (installConfig.packages or []) != [];
 
   files = {
 		# shared {{{
@@ -101,6 +108,7 @@ let
 
       # Generate install steps from section-level install config
       installSteps = makeInstallSteps installConfig;
+      needsNix = hasNixPackages installConfig;
 
       # Apply hookPre if specified for this job
       valueWithHookPre = if builtins.hasAttr jobName hookPre
@@ -120,7 +128,7 @@ let
 
       # Apply install steps (after checkout, before other steps)
       # Find checkout step and insert install steps after it
-      value = if installSteps != [] then
+      valueWithInstall = if installSteps != [] then
         let
           steps = valueWithHookPre.steps;
           # Find index of checkout step (usually first)
@@ -134,6 +142,18 @@ let
         in
         valueWithHookPre // { steps = beforeAndCheckout ++ installSteps ++ afterCheckout; }
       else valueWithHookPre;
+
+      # Add load_nix to needs if nix packages are required
+      existingNeeds = valueWithInstall.needs or null;
+      newNeeds = if needsNix then
+        if existingNeeds == null then "load_nix"
+        else if builtins.isList existingNeeds then [ "load_nix" ] ++ existingNeeds
+        else [ "load_nix" existingNeeds ]
+      else existingNeeds;
+
+      value = if newNeeds != null
+        then valueWithInstall // { needs = newNeeds; }
+        else valueWithInstall;
     in
     {
       name = jobName;
@@ -197,6 +217,13 @@ let
     in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs syncSpec [ "standalone" "default" ])
   else null;
 
+  # Generate load_nix job for a section if it has packages
+  loadNixJob = installConfig:
+    let
+      wf = makeLoadNixWorkflow installConfig;
+    in
+    if wf != null then wf.jobs else {};
+
   workflows = {
     #TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
     #Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
@@ -205,7 +232,9 @@ let
         name = "Errors";
         permissions = (import files.base).permissions;
         env = (import files.rust-base).env;
-        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs installErrors jobsErrors);
+        jobs = pkgs.lib.recursiveUpdate
+          (pkgs.lib.recursiveUpdate (import files.rust-base).jobs (loadNixJob installErrors))
+          (constructJobs installErrors jobsErrors);
       }
     );
 
@@ -214,7 +243,9 @@ let
         name = "Warnings";
         permissions = (import files.base).permissions;
         env = (import files.rust-base).env;
-        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs installWarnings jobsWarnings);
+        jobs = pkgs.lib.recursiveUpdate
+          (pkgs.lib.recursiveUpdate (import files.rust-base).jobs (loadNixJob installWarnings))
+          (constructJobs installWarnings jobsWarnings);
       }
     );
 
@@ -222,7 +253,9 @@ let
       pkgs.lib.recursiveUpdate base {
         name = "Other";
         permissions = (import files.base).permissions;
-        jobs = constructJobs installOther jobsOther;
+        jobs = pkgs.lib.recursiveUpdate
+          (loadNixJob installOther)
+          (constructJobs installOther jobsOther);
       }
     );
   };

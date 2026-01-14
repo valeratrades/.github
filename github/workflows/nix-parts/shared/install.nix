@@ -1,34 +1,17 @@
-# Generate install steps from install config
-# Supports:
-#   - packages: list of nix packages (e.g., with pkgs; [ wayland libxkbcommon ])
-#   - apt: list of apt package names (deprecated)
-#
-# Returns a list of step attrsets to insert after checkout
+# Generate install steps for jobs that depend on load_nix workflow
+# These steps restore the nix cache populated by load_nix
+# Also supports legacy apt (deprecated)
 { packages ? [], apt ? [], linuxOnly ? true }:
 let
-  # Nix-based installation - packages are actual derivations, get their /nix/store paths
-  nixSteps = if packages != [] then
-    let
-      # Create a buildEnv that combines all packages
-      pkgs = builtins.head packages; # Get pkgs from the first package's context
-      env = (import <nixpkgs> {}).buildEnv {
-        name = "ci-deps";
-        paths = packages;
-      };
-    in [
+  # Nix restore steps - just restore from cache, packages already installed by load_nix
+  nixSteps = if packages != [] then [
     {
       name = "Install Nix";
       uses = "DeterminateSystems/nix-installer-action@main";
     }
     {
-      name = "Setup Nix cache";
+      name = "Restore Nix cache";
       uses = "DeterminateSystems/magic-nix-cache-action@main";
-    }
-    {
-      name = "Install dependencies via Nix";
-      run = ''
-        nix-env -i ${builtins.concatStringsSep " " (map (p: "${p}") packages)}
-      '';
     }
   ] else [];
 
