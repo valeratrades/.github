@@ -162,7 +162,7 @@ let
       # Build LD_LIBRARY_PATH setup using nix-build to get exact store paths
       # This is needed on non-NixOS systems (like GHA Ubuntu) where runtime libraries aren't in default search paths
       ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
-        ''export LD_LIBRARY_PATH=\"$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\''${LD_LIBRARY_PATH:+:}\$LD_LIBRARY_PATH\" && ''
+        "export LD_LIBRARY_PATH=\\\"\\$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\\\${LD_LIBRARY_PATH:+:}\\$LD_LIBRARY_PATH\\\" && "
       ) packages);
       wrapStep = step:
         if shellPrefix == "" then step
