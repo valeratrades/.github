@@ -25,7 +25,7 @@
     }
     {
       name = "Initialize qlty";
-      run = "qlty init --no-ui || true";
+      run = "qlty init --yes --no-upgrade-check";
     }
     {
       name = "Check for code duplication";
