@@ -1,9 +1,10 @@
 # Generate install steps for jobs that depend on load_nix workflow
 # These steps restore the nix cache populated by load_nix
 # Also supports legacy apt (deprecated)
+# packages: list of nixpkgs attribute name strings
 { packages ? [], apt ? [], linuxOnly ? true }:
 let
-  # Nix restore steps - just restore from cache, packages already installed by load_nix
+  # Nix restore steps - restore from cache, then make packages available
   nixSteps = if packages != [] then [
     {
       name = "Install Nix";

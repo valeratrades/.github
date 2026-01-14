@@ -1,8 +1,8 @@
-# Generates load_nix reusable workflow - installs nix + packages once, cached for other jobs
+# Generates load_nix job - installs nix + packages once, cached for other jobs
+# packages: list of nixpkgs attribute name strings, e.g. [ "wayland" "libGL" "openssl" ]
 { packages ? [] }:
 let
   hasPackages = packages != [];
-  packagePaths = builtins.concatStringsSep " " (map (p: "${p}") packages);
 in
 if !hasPackages then null else
 {
@@ -21,8 +21,11 @@ if !hasPackages then null else
         uses = "DeterminateSystems/magic-nix-cache-action@main";
       }
       {
-        name = "Install packages";
-        run = "nix-env -i ${packagePaths}";
+        name = "Cache packages";
+        run = ''
+          # Pre-fetch packages into nix store so they're cached for dependent jobs
+          nix shell ${builtins.concatStringsSep " " (map (name: "nixpkgs#${name}") packages)} -c true
+        '';
       }
     ];
   };
