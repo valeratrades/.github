@@ -12,7 +12,9 @@
   ],
   # Optional cargo flags per target
   cargoFlags ? {},
-  # Optional apt dependencies for linux builds
+  # Shared dependencies: { apt = [ "pkg1" ... ]; }
+  install ? {},
+  # Legacy: aptDeps (deprecated, use install.apt instead)
   aptDeps ? [],
   # Branch that triggers the release
   branch ? "release",
@@ -35,12 +37,19 @@ let
   isWindows = target: builtins.match ".*-windows-.*" target != null;
   isLinux = target: builtins.match ".*-linux-.*" target != null;
 
+  # Merge legacy aptDeps with new install.apt
+  effectiveApt = (install.apt or []) ++ aptDeps;
+
   makeWorkflow = target:
     let
       os = targetToOs target;
       shortName = targetToShortName target;
       flags = cargoFlags.${target} or "";
       binarySuffix = if isWindows target then ".exe" else "";
+      # For per-target workflows, no runtime OS check needed (linuxOnly = false)
+      installSteps = if isLinux target
+        then import ../shared/install.nix { apt = effectiveApt; linuxOnly = false; }
+        else [];
     in {
       standalone = true;
       filename = "release-${shortName}.yml";
@@ -74,13 +83,7 @@ let
           ] ++ (if isLinux target then [{
               name = "Install mold";
               uses = "rui314/setup-mold@v1";
-            }] else []) ++ (if isLinux target && aptDeps != [] then [{
-              name = "Install dependencies";
-              run = ''
-                sudo apt-get update
-                sudo apt-get install -y ${builtins.concatStringsSep " " aptDeps}
-              '';
-            }] else []) ++ [
+            }] else []) ++ installSteps ++ [
             {
               name = "Build release binary";
               run = "cargo build --release --target ${target}${if flags != "" then " ${flags}" else ""}";

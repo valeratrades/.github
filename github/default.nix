@@ -62,6 +62,7 @@ github = v-utils.github {
       default = true;        # Enable default error jobs for langs
       augment = [ "rust-miri" ];  # Add extra jobs
       exclude = [ "rust-doc" ];   # Remove from defaults
+      install = { apt = [ "libwayland-dev" ]; };  # Install deps for all error jobs
     };
     warnings = {
       default = true;
@@ -204,8 +205,14 @@ let
   jobsWarnings = processJobsSection "warnings" (jobs.warnings or {}) topDefault;
   jobsOther = processJobsSection "other" (jobs.other or {}) topDefault;
 
+  # Extract install config from each section
+  installErrors = (jobs.errors or {}).install or {};
+  installWarnings = (jobs.warnings or {}).install or {};
+  installOther = (jobs.other or {}).install or {};
+
   workflows = import ./workflows/nix-parts {
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest gitlabSync;
+    inherit installErrors installWarnings installOther;
   };
 
   # Process labels config (accepts both `default` and `defaults`)

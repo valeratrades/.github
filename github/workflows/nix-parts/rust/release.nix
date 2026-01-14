@@ -12,7 +12,9 @@
   ],
   # Optional cargo flags per target (e.g., for --no-default-features on windows)
   cargoFlags ? {},
-  # Optional apt dependencies for linux builds
+  # Shared dependencies: { apt = [ "pkg1" ... ]; }
+  install ? {},
+  # Legacy: aptDeps (deprecated, use install.apt instead)
   aptDeps ? [],
 }:
 let
@@ -27,6 +29,10 @@ let
     os = targetToOs target;
     cargo_flags = cargoFlags.${target} or "";
   }) targets;
+
+  # Merge legacy aptDeps with new install.apt
+  effectiveApt = (install.apt or []) ++ aptDeps;
+  installSteps = import ../shared/install.nix { apt = effectiveApt; };
 in
 {
   # This is a standalone workflow, not a job within errors/warnings/other
@@ -68,14 +74,7 @@ in
           "if" = "runner.os == 'Linux'";
           uses = "rui314/setup-mold@v1";
         }
-      ] ++ (if aptDeps != [] then [{
-          name = "Install dependencies";
-          "if" = "runner.os == 'Linux'";
-          run = ''
-            sudo apt-get update
-            sudo apt-get install -y ${builtins.concatStringsSep " " aptDeps}
-          '';
-        }] else []) ++ [
+      ] ++ installSteps ++ [
         {
           name = "Build release binary";
           run = "cargo build --release --target \${{ matrix.target }} \${{ matrix.cargo_flags }}";

@@ -1,6 +1,3 @@
-let
-  script = builtins.readFile ./code-duplication.rs;
-in
 {
   name = "Code Duplication";
   needs = "pre_ci";
@@ -9,6 +6,15 @@ in
   timeout-minutes = 15;
   steps = [
     { uses = "actions/checkout@v4"; }
+    {
+      uses = "actions/checkout@v4";
+      "with" = {
+        repository = "valeratrades/.github";
+        path = "my_gh_stuff";
+        sparse-checkout = "github/workflows";
+        sparse-checkout-cone-mode = false;
+      };
+    }
     {
       name = "Setup nightly Rust";
       uses = "dtolnay/rust-toolchain@nightly";
@@ -23,13 +29,7 @@ in
     }
     {
       name = "Check for code duplication";
-      run = ''
-        cat > /tmp/qlty-duplication.rs << 'SCRIPT'
-        ${script}
-        SCRIPT
-        chmod +x /tmp/qlty-duplication.rs
-        cargo +nightly -Zscript -q /tmp/qlty-duplication.rs
-      '';
+      run = "cargo +nightly -Zscript -q my_gh_stuff/github/workflows/code-duplication.rs";
     }
   ];
 }

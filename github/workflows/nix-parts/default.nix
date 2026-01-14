@@ -1,4 +1,7 @@
-args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null, gitlabSync ? null }:
+args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null, gitlabSync ? null,
+  # Per-section install dependencies: { apt = [ "pkg1" "pkg2" ]; }
+  installErrors ? {}, installWarnings ? {}, installOther ? {},
+}:
 
 # If called with just nixpkgs (for flake description), return description attribute
 if nixpkgs != null && pkgs == null then {
@@ -38,6 +41,10 @@ Standalone workflows:
 # Otherwise, generate workflows
 let
   utils = import ../../../utils;
+
+  # Generate install steps from install config: { apt = [ "pkg1" ... ]; }
+  makeInstallSteps = installConfig: import ./shared/install.nix { apt = installConfig.apt or []; };
+
   files = {
 		# shared {{{
     base = ./shared/base.nix;
@@ -68,7 +75,7 @@ let
 		#,}}}
   };
 
-	importFile = jobSpec:
+	importFile = installConfig: jobSpec:
     let
       # Support both string and attrset (for passing args)
       jobName = if builtins.isString jobSpec then jobSpec else jobSpec.name;
@@ -89,8 +96,11 @@ let
                   then imported args
                   else imported;
 
+      # Generate install steps from section-level install config
+      installSteps = makeInstallSteps installConfig;
+
       # Apply hookPre if specified for this job
-      value = if builtins.hasAttr jobName hookPre
+      valueWithHookPre = if builtins.hasAttr jobName hookPre
               then
                 let
                   # Get the list of pre-hook commands for this job
@@ -104,14 +114,31 @@ let
                 in
                 baseValue // { steps = modifiedSteps; }
               else baseValue;
+
+      # Apply install steps (after checkout, before other steps)
+      # Find checkout step and insert install steps after it
+      value = if installSteps != [] then
+        let
+          steps = valueWithHookPre.steps;
+          # Find index of checkout step (usually first)
+          checkoutIdx = pkgs.lib.lists.findFirstIndex
+            (s: (s.uses or "") == "actions/checkout@v4")
+            0
+            steps;
+          # Split steps: before+checkout, then rest
+          beforeAndCheckout = pkgs.lib.lists.take (checkoutIdx + 1) steps;
+          afterCheckout = pkgs.lib.lists.drop (checkoutIdx + 1) steps;
+        in
+        valueWithHookPre // { steps = beforeAndCheckout ++ installSteps ++ afterCheckout; }
+      else valueWithHookPre;
     in
     {
       name = jobName;
       inherit value;
     };
 
-  constructJobs = paths: 
-    builtins.listToAttrs (map importFile paths);
+  constructJobs = installConfig: paths:
+    builtins.listToAttrs (map (importFile installConfig) paths);
   
   base = {
     on = {
@@ -175,7 +202,7 @@ let
         name = "Errors";
         permissions = (import files.base).permissions;
         env = (import files.rust-base).env;
-        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsErrors);
+        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs installErrors jobsErrors);
       }
     );
 
@@ -184,7 +211,7 @@ let
         name = "Warnings";
         permissions = (import files.base).permissions;
         env = (import files.rust-base).env;
-        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs jobsWarnings);
+        jobs = pkgs.lib.recursiveUpdate (import files.rust-base).jobs (constructJobs installWarnings jobsWarnings);
       }
     );
 
@@ -192,7 +219,7 @@ let
       pkgs.lib.recursiveUpdate base {
         name = "Other";
         permissions = (import files.base).permissions;
-        jobs = constructJobs jobsOther;
+        jobs = constructJobs installOther jobsOther;
       }
     );
   };
