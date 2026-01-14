@@ -14,6 +14,7 @@
   cargoFlags ? {},
   # Shared dependencies: { apt = [ "pkg1" ... ]; }
   install ? {},
+  #DEPRECATE: remove aptDeps param
   # Legacy: aptDeps (deprecated, use install.apt instead)
   aptDeps ? [],
 }:
@@ -32,6 +33,7 @@ let
 
   # Merge legacy aptDeps with new install.apt
   effectiveApt = (install.apt or []) ++ aptDeps;
+  _ = if aptDeps != [] then builtins.trace "WARNING: release.aptDeps is deprecated, use release.install.apt instead" null else null;
   installSteps = import ../shared/install.nix { apt = effectiveApt; };
 in
 {

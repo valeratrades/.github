@@ -14,6 +14,7 @@
   cargoFlags ? {},
   # Shared dependencies: { apt = [ "pkg1" ... ]; }
   install ? {},
+  #DEPRECATE: remove aptDeps param
   # Legacy: aptDeps (deprecated, use install.apt instead)
   aptDeps ? [],
   # Branch that triggers the release
@@ -39,6 +40,7 @@ let
 
   # Merge legacy aptDeps with new install.apt
   effectiveApt = (install.apt or []) ++ aptDeps;
+  _ = if aptDeps != [] then builtins.trace "WARNING: releaseLatest.aptDeps is deprecated, use releaseLatest.install.apt instead" null else null;
 
   makeWorkflow = target:
     let
