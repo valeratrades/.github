@@ -135,7 +135,7 @@ let
   files = import ../files;
 
   # Shared defaults across all languages
-  sharedWarnings = [ "tokei" ];
+  sharedWarnings = [ "tokei" "code-duplication" ]; #TEST: if code-duplication works for other languages
   sharedOther = [ "loc-badge" ];
 
   # Default jobs per language
