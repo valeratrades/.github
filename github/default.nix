@@ -270,5 +270,5 @@ in
     ${labelSyncHook}
   '';
 
-  enabledPackages = [ git_ops ] ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else []);
+  enabledPackages = [ git_ops pkgs.treefmt ] ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else []); #Q: not sure if this is the right place to bring in `treefmt`. But git-hooks seems to have had seized managing it correctly, so keep it here for now.
 }
