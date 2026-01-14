@@ -62,7 +62,7 @@ github = v-utils.github {
       default = true;        # Enable default error jobs for langs
       augment = [ "rust-miri" ];  # Add extra jobs
       exclude = [ "rust-doc" ];   # Remove from defaults
-      install = { apt = [ "libwayland-dev" ]; };  # Install deps for all error jobs
+      install = { packages = with pkgs; [ wayland libxkbcommon ]; };  # Nix packages for all error jobs
     };
     warnings = {
       default = true;

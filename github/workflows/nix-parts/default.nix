@@ -42,8 +42,11 @@ Standalone workflows:
 let
   utils = import ../../../utils;
 
-  # Generate install steps from install config: { apt = [ "pkg1" ... ]; }
-  makeInstallSteps = installConfig: import ./shared/install.nix { apt = installConfig.apt or []; };
+  # Generate install steps from install config: { packages = [ "pkg1" ... ]; apt = [ ... ]; }
+  makeInstallSteps = installConfig: import ./shared/install.nix {
+    packages = installConfig.packages or [];
+    apt = installConfig.apt or [];
+  };
 
   files = {
 		# shared {{{
