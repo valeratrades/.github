@@ -163,7 +163,7 @@ let
       # This is needed on non-NixOS systems (like GHA Ubuntu) where runtime libraries aren't in default search paths
       ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
         "export LD_LIBRARY_PATH=\\\"\\$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\\\${LD_LIBRARY_PATH:+:}\\$LD_LIBRARY_PATH\\\" && "
-      ) packages);
+      ) packages) + "echo DEBUG: LD_LIBRARY_PATH=\\$LD_LIBRARY_PATH && ";
       wrapStep = step:
         if shellPrefix == "" then step
         else if step ? run then
