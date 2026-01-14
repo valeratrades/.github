@@ -20,7 +20,7 @@ workflows = import ./github/workflows/nix-parts {
 };
 ```
 
-Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, rust-leptosfmt, go-tests, go-gocritic, go-security-audit, tokei, loc-badge
+Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, rust-leptosfmt, go-tests, go-gocritic, go-security-audit, tokei, loc-badge, code-duplication
 
 Standalone workflows:
 - release = { default = true; } or release = { targets = [...]; ... }
@@ -44,6 +44,7 @@ let
     tokei = ./shared/tokei.nix;
     loc-badge = ./shared/loc-badge.nix;
     sync-gitlab = ./shared/sync-gitlab.nix;
+    code-duplication = ./shared/code-duplication.nix;
 		#,}}}
 
 		# rust {{{
