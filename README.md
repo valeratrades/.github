@@ -60,7 +60,7 @@ README generation framework from `.readme_assets/` directory.
       };
 
       # Combine all modules - automatically collects enabledPackages and shellHook
-      combined = v-utils.utils.combineModules [ rs github readme ];
+      combined = v-utils.utils.combine [ rs github readme ];
     in
     {
       devShells.default = pkgs.mkShell {

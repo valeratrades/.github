@@ -114,7 +114,7 @@ in
   # Extracts enabledPackages and shellHook from each module and combines them
   #
   # Usage:
-  #   combined = v-utils.utils.combineModules [ rs github readme ];
+  #   combined = v-utils.utils.combine [ rs github readme ];
   #   devShells.default = pkgs.mkShell {
   #     packages = combined.enabledPackages;
   #     shellHook = combined.shellHook;
@@ -122,7 +122,7 @@ in
   #
   # Each module should have optional `enabledPackages` (list) and `shellHook` (string) attributes.
   # Missing attributes are treated as empty.
-  combineModules = modules:
+  combine = modules:
     let
       getPackages = m: m.enabledPackages or [];
       getHook = m: m.shellHook or "";
