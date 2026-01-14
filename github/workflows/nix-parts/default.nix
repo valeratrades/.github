@@ -55,6 +55,14 @@ let
   # Check if section has nix packages
   hasNixPackages = installConfig: (installConfig.packages or []) != [];
 
+  # Generate nix shell prefix for wrapping commands
+  nixShellPrefix = installConfig:
+    let
+      packages = installConfig.packages or [];
+    in
+    if packages == [] then ""
+    else "nix shell ${builtins.concatStringsSep " " (map (name: "nixpkgs#${name}") packages)} -c ";
+
   files = {
 		# shared {{{
     base = ./shared/base.nix;
@@ -143,8 +151,22 @@ let
         valueWithHookPre // { steps = beforeAndCheckout ++ installSteps ++ afterCheckout; }
       else valueWithHookPre;
 
+      # Wrap run commands in nix shell if packages are specified
+      shellPrefix = nixShellPrefix installConfig;
+      wrapStep = step:
+        if shellPrefix == "" then step
+        else if step ? run then
+          # Wrap the run command in nix shell, but skip if it's already a nix command
+          if builtins.substring 0 4 step.run == "nix " then step
+          else if builtins.substring 0 5 step.run == "echo " then step
+          else step // { run = "${shellPrefix}bash -c '${builtins.replaceStrings ["'"] ["'\\''"] step.run}'"; }
+        else step;
+      valueWithWrappedRuns = if needsNix then
+        valueWithInstall // { steps = map wrapStep valueWithInstall.steps; }
+      else valueWithInstall;
+
       # Add load_nix to needs if nix packages are required
-      existingNeeds = valueWithInstall.needs or null;
+      existingNeeds = valueWithWrappedRuns.needs or null;
       newNeeds = if needsNix then
         if existingNeeds == null then "load_nix"
         else if builtins.isList existingNeeds then [ "load_nix" ] ++ existingNeeds
@@ -152,8 +174,8 @@ let
       else existingNeeds;
 
       value = if newNeeds != null
-        then valueWithInstall // { needs = newNeeds; }
-        else valueWithInstall;
+        then valueWithWrappedRuns // { needs = newNeeds; }
+        else valueWithWrappedRuns;
     in
     {
       name = jobName;
