@@ -50,6 +50,7 @@ let
   makeInstallSteps = installConfig: import ./shared/install.nix {
     packages = installConfig.packages or [];
     apt = installConfig.apt or [];
+    debug = installConfig.debug or false;
   };
 
   # Check if section has nix packages
