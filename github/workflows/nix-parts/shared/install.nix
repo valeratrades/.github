@@ -4,7 +4,11 @@
 # packages: list of nixpkgs attribute name strings
 { packages ? [], apt ? [], linuxOnly ? true, debug ? false }:
 let
-  pkgList = builtins.concatStringsSep " " packages;
+  # Always include openssl.out (runtime libs) and openssl.dev (headers)
+  # because "openssl" alone resolves to openssl-bin which has no libraries
+  allPackages = packages ++ [ "openssl.out" "openssl.dev" ];
+
+  pkgList = builtins.concatStringsSep " " allPackages;
 
   # Build debug script that prints extensive environment info
   debugScript = ''
@@ -28,7 +32,7 @@ let
     echo "6. Package store paths:"
     ${builtins.concatStringsSep "\n" (map (pkg: ''
     echo "  ${pkg}: $(nix-build '<nixpkgs>' -A ${pkg} --no-out-link 2>/dev/null || echo 'FAILED')"
-    '') packages)}
+    '') allPackages)}
     echo ""
     echo "7. libssl.so locations in nix store:"
     find /nix/store -name 'libssl.so*' 2>/dev/null | head -20 || echo "none found"

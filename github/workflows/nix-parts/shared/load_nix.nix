@@ -2,6 +2,9 @@
 # packages: list of nixpkgs attribute name strings, e.g. [ "wayland" "libGL" "openssl" ]
 { packages ? [] }:
 let
+  # Always include openssl.out (runtime libs) and openssl.dev (headers)
+  # because "openssl" alone resolves to openssl-bin which has no libraries
+  allPackages = packages ++ [ "openssl.out" "openssl.dev" ];
   hasPackages = packages != [];
 in
 if !hasPackages then null else
@@ -25,7 +28,7 @@ if !hasPackages then null else
         run = ''
           # Pre-fetch packages into nix store so they're cached for dependent jobs
           # Use nix-shell which properly sets up env vars like PKG_CONFIG_PATH
-          nix-shell -p ${builtins.concatStringsSep " " packages} --run "echo packages cached"
+          nix-shell -p ${builtins.concatStringsSep " " allPackages} --run "echo packages cached"
         '';
       }
     ];
