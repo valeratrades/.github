@@ -109,7 +109,7 @@ let
 
   # Package versions - update these when bumping
   traceyVersion = "1.0.0";
-  codestyleVersion = "0.2.19";
+  codestyleVersion = "0.2.20";
 
   # codestyle installed via binstall (same as tracey)
   # Building from source fails in nix sandbox due to TMPDIR issues during cargo build
