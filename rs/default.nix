@@ -108,8 +108,9 @@ let
   workspace = build.workspace or { "./" = [ "git_version" "log_directives" ]; };
 
   # Package versions - update these when bumping
-  traceyVersion = "1.0.0";
-  codestyleVersion = "0.2.21";
+  # Use partial semver (major.minor) for tools where patch updates are safe
+  traceyVersion = "1.0";
+  codestyleVersion = "0.2";
 
   # codestyle installed via binstall (same as tracey)
   # Building from source fails in nix sandbox due to TMPDIR issues during cargo build
@@ -160,7 +161,7 @@ let
     export PATH="$HOME/.cargo/bin:$PATH"
   '' + (if tracey then ''
     _tracey_installed=$(cargo install --list 2>/dev/null | grep "^tracey v" | grep -oP '\d+\.\d+\.\d+' || echo "")
-    if [ "$_tracey_installed" != "${traceyVersion}" ]; then
+    if [[ ! "$_tracey_installed" =~ ^${traceyVersion}\. ]]; then
       echo "Installing tracey@${traceyVersion}..."
       cargo binstall tracey@${traceyVersion} --no-confirm -q 2>/dev/null || cargo install tracey@${traceyVersion} -q
     fi
@@ -169,7 +170,7 @@ let
   # Lazy install hook for codestyle - called from pre-commit, not shell entry
   codestyleLazyInstall = if styleEnabled then ''
     _codestyle_installed=$(codestyle --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "")
-    if [ "$_codestyle_installed" != "${codestyleVersion}" ]; then
+    if [[ ! "$_codestyle_installed" =~ ^${codestyleVersion}\. ]]; then
       echo "Installing codestyle@${codestyleVersion}..."
       cargo binstall codestyle@${codestyleVersion} --no-confirm -q 2>/dev/null || cargo install codestyle@${codestyleVersion} -q
     fi
