@@ -155,24 +155,26 @@ let
 
   # binstall hook - installs/upgrades tracey via cargo-binstall at shell entry
   # Uses ~/.cargo/bin as install location
-  # Checks version and upgrades if installed version differs from expected
+  # Queries crates.io for latest version matching semver prefix, installs if different from local
   # Note: codestyle is installed lazily at pre-commit time, not here
   binstallHook = ''
     export PATH="$HOME/.cargo/bin:$PATH"
   '' + (if tracey then ''
     _tracey_installed=$(cargo install --list 2>/dev/null | grep "^tracey v" | grep -oP '\d+\.\d+\.\d+' || echo "")
-    if [[ ! "$_tracey_installed" =~ ^${traceyVersion}\. ]]; then
-      echo "Installing tracey@${traceyVersion}..."
-      cargo binstall tracey@${traceyVersion} --no-confirm -q 2>/dev/null || cargo install tracey@${traceyVersion} -q
+    _tracey_latest=$(curl -s "https://crates.io/api/v1/crates/tracey/versions" | grep -oP '"num":"${traceyVersion}\.[^"]*"' | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "")
+    if [ -n "$_tracey_latest" ] && [ "$_tracey_installed" != "$_tracey_latest" ]; then
+      echo "Installing tracey@$_tracey_latest..."
+      cargo binstall "tracey@$_tracey_latest" --no-confirm -q 2>/dev/null || cargo install "tracey@$_tracey_latest" -q
     fi
   '' else "");
 
   # Lazy install hook for codestyle - called from pre-commit, not shell entry
   codestyleLazyInstall = if styleEnabled then ''
     _codestyle_installed=$(codestyle --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "")
-    if [[ ! "$_codestyle_installed" =~ ^${codestyleVersion}\. ]]; then
-      echo "Installing codestyle@${codestyleVersion}..."
-      cargo binstall codestyle@${codestyleVersion} --no-confirm -q 2>/dev/null || cargo install codestyle@${codestyleVersion} -q
+    _codestyle_latest=$(curl -s "https://crates.io/api/v1/crates/codestyle/versions" | grep -oP '"num":"${codestyleVersion}\.[^"]*"' | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "")
+    if [ -n "$_codestyle_latest" ] && [ "$_codestyle_installed" != "$_codestyle_latest" ]; then
+      echo "Installing codestyle@$_codestyle_latest..."
+      cargo binstall "codestyle@$_codestyle_latest" --no-confirm -q 2>/dev/null || cargo install "codestyle@$_codestyle_latest" -q
     fi
   '' else "";
 in
