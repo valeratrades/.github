@@ -278,11 +278,22 @@ fn update_cargo_hash(content: &str, crate_name: &str, new_hash: &str) -> String 
     result.join("\n")
 }
 
+/// Extract major.minor from a version string (e.g., "0.2.22" -> "0.2")
+fn to_partial_semver(version: &str) -> String {
+    let parts: Vec<&str> = version.split('.').collect();
+    if parts.len() >= 2 {
+        format!("{}.{}", parts[0], parts[1])
+    } else {
+        version.to_string()
+    }
+}
+
 fn bump_crate_binstall(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool, String> {
     println!("Checking {} (binstall)...", crate_cfg.name);
 
-    let latest = get_latest_version(&crate_cfg.name)?;
-    println!("  Latest version: {}", latest);
+    let latest_full = get_latest_version(&crate_cfg.name)?;
+    let latest = to_partial_semver(&latest_full);
+    println!("  Latest version: {} (partial: {})", latest_full, latest);
 
     let flake_path = repo_root.join("flake.nix");
     let rs_path = repo_root.join("rs/default.nix");
@@ -303,7 +314,8 @@ fn bump_crate_binstall(crate_cfg: &CrateConfig, repo_root: &Path) -> Result<bool
 
     println!("  Updating {} -> {}...", current, latest);
 
-    // For binstall mode, just update version variables
+    // For binstall mode, use partial semver (major.minor only).
+    // cargo-binstall resolves to the latest matching patch version.
     let flake_content = update_version(&flake_content, &crate_cfg.version_var, &latest);
     let rs_content = update_version(&rs_content, &crate_cfg.version_var, &latest);
 

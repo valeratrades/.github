@@ -13,8 +13,9 @@ See individual component descriptions in their respective directories.'';
       pname = "v-utils";
 
       # Version constants for bundled packages - update these when bumping
-      traceyVersion = "1.0.0";
-      codestyleVersion = "0.2.21";
+      # Use partial semver (major.minor) - patch versions auto-resolve via cargo-binstall
+      traceyVersion = "1.0";
+      codestyleVersion = "0.2";
 
       parts = {
         files = (import ./files).description;

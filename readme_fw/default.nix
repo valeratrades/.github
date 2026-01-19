@@ -14,6 +14,7 @@ args@{
   defaults ? false,
   default ? defaults,
   licenses ? null,
+  gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb",
 }:
 
 let
@@ -58,8 +59,14 @@ let
       pname
       lastSupportedVersion
       rootDir
+      gistId
       ;
   };
+
+  initLocGistScript = ./init_loc_gist.rs;
+  init_loc_gist = pkgs.writeShellScriptBin "init-loc-gist" ''
+    exec ${initLocGistScript} --pname "${pname}" --gist-id "${gistId}" "$@"
+  '';
   badges_out = badgeModule.combineBadges badges;
 
   # Helper function to process markdown sections with standardized handling
@@ -337,6 +344,6 @@ README_EOF
     '';
 in
 {
-  inherit readme shellHook;
-  enabledPackages = [];
+  inherit readme shellHook init_loc_gist;
+  enabledPackages = [ init_loc_gist pkgs.tokei ];
 }
