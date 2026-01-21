@@ -26,8 +26,7 @@ serde_json = "1"
 
 use clap::Parser;
 use serde::Deserialize;
-use std::io::{self, Write};
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 #[derive(Parser, Debug)]
 #[command(name = "init-loc-gist")]
@@ -43,13 +42,8 @@ struct Args {
 }
 
 #[derive(Deserialize)]
-struct GistFile {
-    raw_url: String,
-}
-
-#[derive(Deserialize)]
 struct Gist {
-    files: std::collections::HashMap<String, GistFile>,
+    files: std::collections::HashMap<String, serde_json::Value>,
 }
 
 fn get_loc() -> u64 {
@@ -76,6 +70,7 @@ fn get_loc() -> u64 {
 fn gist_file_exists(gist_id: &str, filename: &str) -> Result<bool, String> {
     let output = Command::new("gh")
         .args(["api", &format!("gists/{}", gist_id)])
+        .stderr(Stdio::piped())
         .output()
         .map_err(|e| format!("Failed to run gh: {}", e))?;
 
@@ -94,39 +89,41 @@ fn gist_file_exists(gist_id: &str, filename: &str) -> Result<bool, String> {
 }
 
 fn create_gist_file(gist_id: &str, filename: &str, loc: u64) -> Result<(), String> {
-    let json_content = format!(
-        r#"{{"schemaVersion": 1, "label": "LoC", "message": "{}", "color": "lightblue"}}"#,
-        loc
-    );
+    let badge_json = serde_json::json!({
+        "schemaVersion": 1,
+        "label": "LoC",
+        "message": loc.to_string(),
+        "color": "lightblue"
+    });
 
-    let jq_expr = format!(
-        r#".files."{}" = {{"content": "{}"}}"#,
-        filename,
-        json_content.replace('"', r#"\""#)
-    );
+    let body = serde_json::json!({
+        "files": {
+            filename: {
+                "content": badge_json.to_string()
+            }
+        }
+    });
 
     let output = Command::new("gh")
         .args([
             "api",
-            "--method",
-            "PATCH",
+            "--method", "PATCH",
             &format!("gists/{}", gist_id),
-            "--input",
-            "-",
+            "--input", "-",
         ])
-        .stdin(std::process::Stdio::piped())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::piped())
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
         .spawn()
         .map_err(|e| format!("Failed to spawn gh: {}", e))?;
 
-    let body = format!(r#"{{"files": {{"{filename}": {{"content": "{json_content}"}}}}}}"#);
-
-    let mut stdin = output.stdin.as_ref().ok_or("Failed to get stdin")?;
-    stdin
-        .write_all(body.as_bytes())
-        .map_err(|e| format!("Failed to write to stdin: {}", e))?;
-    drop(stdin);
+    {
+        use std::io::Write;
+        let mut stdin = output.stdin.as_ref().ok_or("Failed to get stdin")?;
+        stdin
+            .write_all(body.to_string().as_bytes())
+            .map_err(|e| format!("Failed to write to stdin: {}", e))?;
+    }
 
     let output = output
         .wait_with_output()
@@ -148,10 +145,10 @@ fn main() {
 
     match gist_file_exists(&args.gist_id, &filename) {
         Ok(true) => {
-            println!("File {} already exists in gist {}", filename, args.gist_id);
+            // File exists, nothing to do
         }
         Ok(false) => {
-            println!("File {} does not exist, creating...", filename);
+            println!("LOC gist file {} does not exist, creating...", filename);
             let loc = get_loc();
             println!("Counted {} lines of code", loc);
 

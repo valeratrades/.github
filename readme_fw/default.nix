@@ -332,13 +332,26 @@ ${builtins.readFile licenses_out}
 README_EOF
   '';
 
+  # Expected loc badge URL for this pname/gistId
+  expectedLocBadge = "https://gist.githubusercontent.com/valeratrades/${gistId}/raw/${pname}-loc.json";
+  hasLocBadge = builtins.elem "loc" badges;
+
   shellHook =
     let
       licenseCopies = builtins.concatStringsSep "\n" (
         builtins.map (l: "cp -f ${l.license.path} ./${l.outPath}") licenses
       );
+      # Run init-loc-gist only if loc badge is used AND README exists with a DIFFERENT loc badge URL
+      # (indicates project was renamed). Don't run if README doesn't exist or has no loc badge -
+      # the CI workflow will create the gist file on first push.
+      locGistCheck = if hasLocBadge then ''
+        if [ -f ./README.md ] && grep -qF "gist.githubusercontent.com/valeratrades/${gistId}/raw/" ./README.md && ! grep -qF "${expectedLocBadge}" ./README.md; then
+          ${initLocGistScript} --pname "${pname}" --gist-id "${gistId}"
+        fi
+      '' else "";
     in
     ''
+      ${locGistCheck}
       ${licenseCopies}
       cp -f ${readme} ./README.md
     '';
