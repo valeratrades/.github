@@ -240,6 +240,7 @@ let
   # Label sync runs silently in background to avoid blocking shell startup.
   # On failure, it writes to a lock file. Next shell entry detects the lock
   # and runs sync sequentially with full output so errors are visible.
+  # Uses double-fork via subshell + nohup to fully detach from parent shell.
   labelSyncHook = if labelsEnabled then ''
     _label_sync_lock="/tmp/$(echo -n "$PWD" | sha256sum | cut -d' ' -f1).lock"
     if [[ -f "$_label_sync_lock" ]]; then
@@ -248,8 +249,7 @@ let
         rm -f "$_label_sync_lock"
       fi
     else
-      (${git_ops}/bin/git_ops sync-labels 2>&1 || echo "$?" > "$_label_sync_lock") &
-      disown
+      (nohup sh -c '${git_ops}/bin/git_ops sync-labels 2>&1 || echo "$?" > "'"$_label_sync_lock"'"' >/dev/null 2>&1 &)
     fi
   '' else "";
 in
