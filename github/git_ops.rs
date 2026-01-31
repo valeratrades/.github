@@ -20,14 +20,19 @@ edition = "2024"
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
+dirs = "6"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 ---
 
 use clap::{Parser, Subcommand};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::collections::hash_map::DefaultHasher;
+use std::fs;
+use std::hash::{Hash, Hasher};
 use std::io::{self, BufRead, IsTerminal, Write};
+use std::path::PathBuf;
 use std::process::Command;
 
 #[derive(Parser, Debug)]
@@ -52,7 +57,7 @@ enum Commands {
     },
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Hash)]
 struct LabelSpec {
     name: String,
     color: String,
@@ -71,6 +76,59 @@ fn parse_label(s: &str) -> Result<LabelSpec, String> {
     }
     let description = parts.get(2).filter(|d| !d.is_empty()).map(|d| d.to_string());
     Ok(LabelSpec { name, color, description })
+}
+
+/// Compute a stable hash of the label configuration
+fn compute_labels_hash(labels: &[LabelSpec]) -> u64 {
+    let mut sorted: Vec<_> = labels.iter().collect();
+    sorted.sort_by(|a, b| a.name.cmp(&b.name));
+    let mut hasher = DefaultHasher::new();
+    for label in sorted {
+        label.hash(&mut hasher);
+    }
+    hasher.finish()
+}
+
+#[derive(Debug, Serialize, Deserialize, Default)]
+struct SyncState {
+    /// Map from absolute repo path to hash of synced labels
+    synced: HashMap<String, u64>,
+}
+
+fn state_file_path() -> PathBuf {
+    let state_dir = dirs::state_dir()
+        .expect("XDG_STATE_HOME not available")
+        .join("git_ops");
+    state_dir.join("sync_labels.json")
+}
+
+fn load_sync_state() -> SyncState {
+    let path = state_file_path();
+    match fs::read_to_string(&path) {
+        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
+        Err(_) => SyncState::default(),
+    }
+}
+
+fn save_sync_state(state: &SyncState) {
+    let path = state_file_path();
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).expect("failed to create state directory");
+    }
+    let content = serde_json::to_string_pretty(state).expect("failed to serialize state");
+    fs::write(&path, content).expect("failed to write state file");
+}
+
+fn get_repo_root() -> Option<String> {
+    let output = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
+        .output()
+        .ok()?;
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    } else {
+        None
+    }
 }
 
 #[derive(Debug, Deserialize)]
@@ -244,6 +302,16 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
         println!("Color check passed.");
     }
 
+    // Check if we've already synced this exact label configuration for this repo
+    let current_hash = compute_labels_hash(&local_labels);
+    let repo_root = get_repo_root().expect("not in a git repository");
+    let mut state = load_sync_state();
+
+    if state.synced.get(&repo_root) == Some(&current_hash) {
+        // Already synced this configuration, nothing to do
+        return;
+    }
+
     let remote_labels = match get_remote_labels() {
         Ok(labels) => labels,
         Err(e) => {
@@ -311,6 +379,10 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
             }
         }
     }
+
+    // Update cache with current hash
+    state.synced.insert(repo_root, current_hash);
+    save_sync_state(&state);
 
     // Only print summary if there were actual changes
     if created > 0 || updated > 0 || deleted > 0 {
