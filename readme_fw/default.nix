@@ -8,7 +8,11 @@
 #
 # logo: optional, auto-discovered from .readme_assets/logo.(md|html)
 #   - must be single line containing an image tag or markdown image
-#   - width is forced to 25%
+#   - if no width specified, defaults to `defaultLogoWidth`
+let
+  # Default width for logo images when not specified in the logo file
+  defaultLogoWidth = "25%";
+in
 args@{
   pkgs,
   rootDir,
@@ -75,18 +79,18 @@ let
       let
         line = builtins.head logoLines;
         hasWidth = builtins.match ".*width=.*" line != null;
-        # For HTML img tags, add width="25%" only if not already specified
+        # For HTML img tags, add defaultLogoWidth only if not already specified
         withFixedWidth =
           if builtins.match ".*<img.*" line != null then
             if hasWidth then line
-            else builtins.replaceStrings [ "<img " ] [ ''<img width="25%" '' ] line
+            else builtins.replaceStrings [ "<img " ] [ ''<img width="${defaultLogoWidth}" '' ] line
           else
-            # For markdown images, wrap in HTML with width
+            # For markdown images, wrap in HTML with defaultLogoWidth
             let
               match = builtins.match "!\\[([^]]*)\\]\\(([^)]+)\\)" line;
             in
               if match != null then
-                ''<img src="${builtins.elemAt match 1}" alt="${builtins.elemAt match 0}" width="25%">''
+                ''<img src="${builtins.elemAt match 1}" alt="${builtins.elemAt match 0}" width="${defaultLogoWidth}">''
               else
                 line;
       in withFixedWidth;
