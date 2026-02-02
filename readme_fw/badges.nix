@@ -4,6 +4,7 @@
   pname,
   lastSupportedVersion,
   gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb",
+  logo ? "",
 }: let
   badges = {
     msrv = ''![Minimum Supported Rust Version](https://img.shields.io/badge/${lastSupportedVersion}+-ab6000.svg)'';
@@ -22,7 +23,8 @@
       [<img alt="ci warnings" src="https://img.shields.io/github/actions/workflow/status/valeratrades/${pname}/warnings.yml?branch=master&style=for-the-badge&style=flat-square&label=warnings&labelColor=d16002" height="20">](https://github.com/valeratrades/${pname}/actions?query=branch%3Amaster) <!--NB: Won't find it if repo is private-->'';
   };
   combineBadges = names: let
-    header = "# ${pname}";
+    logoSuffix = if logo != "" then " ${logo}" else "";
+    header = "# ${pname}${logoSuffix}";
     mainBadges = builtins.concatStringsSep "\n" (map (name: badges.${name}) names);
   in
     pkgs.runCommand "" {} ''

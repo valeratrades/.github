@@ -5,6 +5,10 @@
 # licenses: list of { outPath?, license }
 #   - outPath: (optional, defaults to "LICENSE") path in the repo where the license will be copied
 #   - license: attrset from files.licenses.* with { name, path }
+#
+# logo: optional, auto-discovered from .readme_assets/logo.(md|html)
+#   - must be single line containing an image tag or markdown image
+#   - width is forced to 25%
 args@{
   pkgs,
   rootDir,
@@ -52,14 +56,50 @@ let
   licenses = licensesNormalized;
   rootStr = pkgs.lib.removeSuffix "/" (toString rootDir);
 
+  # Logo processing: look for .readme_assets/logo.(md|html)
+  logoMdPath = rootDir + "/.readme_assets/logo.md";
+  logoHtmlPath = rootDir + "/.readme_assets/logo.html";
+  logoPath =
+    if builtins.pathExists logoMdPath then logoMdPath
+    else if builtins.pathExists logoHtmlPath then logoHtmlPath
+    else null;
+
+  logoRaw = if logoPath != null then builtins.readFile logoPath else "";
+  logoLines = pkgs.lib.splitString "\n" (pkgs.lib.removeSuffix "\n" logoRaw);
+  logoLineCount = builtins.length (builtins.filter (l: l != "") logoLines);
+
+  # Validate: must be single line
+  logo = assert logoPath == null || logoLineCount == 1 || throw "logo file must contain exactly one line, got ${toString logoLineCount}";
+    if logoPath == null then ""
+    else
+      let
+        line = builtins.head logoLines;
+        hasWidth = builtins.match ".*width=.*" line != null;
+        # For HTML img tags, add width="25%" only if not already specified
+        withFixedWidth =
+          if builtins.match ".*<img.*" line != null then
+            if hasWidth then line
+            else builtins.replaceStrings [ "<img " ] [ ''<img width="25%" '' ] line
+          else
+            # For markdown images, wrap in HTML with width
+            let
+              match = builtins.match "!\\[([^]]*)\\]\\(([^)]+)\\)" line;
+            in
+              if match != null then
+                ''<img src="${builtins.elemAt match 1}" alt="${builtins.elemAt match 0}" width="25%">''
+              else
+                line;
+      in withFixedWidth;
+
   #Q: theoretically could have this thing right here count the LoC itself. Could be cleaner.
-  badgeModule = builtins.trace "DEBUG: loading badges" import ./badges.nix {
+  badgeModule = import ./badges.nix {
     inherit
       pkgs
       pname
       lastSupportedVersion
       rootDir
       gistId
+      logo
       ;
   };
 
