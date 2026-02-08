@@ -107,8 +107,8 @@ github = v-utils.github {
   };
 
   # GitLab mirror sync (triggers on any push)
-  gitlabSync = { mirrorUrl = "https://gitlab.com/user/repo.git"; };
-  # Requires GITLAB_TOKEN secret in GitHub repo
+  gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; };
+  # Repo name appended from GitHub context. Requires GITLAB_TOKEN secret
 };
 ```
 

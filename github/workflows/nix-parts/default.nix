@@ -32,9 +32,9 @@ Standalone workflows:
 - releaseLatest = { default = true; } or releaseLatest = { platforms = [...]; ... }
     Rolling "latest" releases per platform (triggers on branch push)
     Available platforms: debian, windows, macos
-- gitlabSync = { mirrorUrl = "https://gitlab.com/user/repo.git"; }
+- gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; }
     Sync to GitLab mirror (triggers on push to any branch/tag)
-    Requires GITLAB_TOKEN secret
+    Repo name is appended from GitHub context. Requires GITLAB_TOKEN secret
 '';
 } else
 
@@ -241,9 +241,14 @@ let
   else {};
 
   # GitLab sync workflow (triggers on any push)
+  stripTrailingSlash = s:
+    let len = builtins.stringLength s;
+    in if len > 0 && builtins.substring (len - 1) 1 s == "/"
+       then builtins.substring 0 (len - 1) s
+       else s;
   gitlabSyncWorkflow = if gitlabSync != null then
     let
-      syncSpec = import files.sync-gitlab gitlabSync.mirrorUrl;
+      syncSpec = import files.sync-gitlab (stripTrailingSlash gitlabSync.mirrorBaseUrl);
     in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs syncSpec [ "standalone" ])
   else null;
 
