@@ -32,9 +32,9 @@ Standalone workflows:
 - releaseLatest = { default = true; } or releaseLatest = { platforms = [...]; ... }
     Rolling "latest" releases per platform (triggers on branch push)
     Available platforms: debian, windows, macos
-- gitlabSync = { default = true; }
+- gitlabSync = { mirrorUrl = "https://gitlab.com/user/repo.git"; }
     Sync to GitLab mirror (triggers on push to any branch/tag)
-    Requires GITLAB_MIRROR_URL and GITLAB_TOKEN secrets
+    Requires GITLAB_TOKEN secret
 '';
 } else
 
@@ -211,7 +211,6 @@ let
   # Accepts both `default` and `defaults` via optionalDefaults
   releaseNormalized = if builtins.isAttrs release then utils.optionalDefaults release else release;
   releaseLatestNormalized = if builtins.isAttrs releaseLatest then utils.optionalDefaults releaseLatest else releaseLatest;
-  gitlabSyncNormalized = if builtins.isAttrs gitlabSync then utils.optionalDefaults gitlabSync else gitlabSync;
   releaseEnabled = release != null && (
     (builtins.isAttrs releaseNormalized && releaseNormalized.default)
     || release == true
@@ -219,10 +218,6 @@ let
   releaseLatestEnabled = releaseLatest != null && (
     (builtins.isAttrs releaseLatestNormalized && releaseLatestNormalized.default)
     || releaseLatest == true
-  );
-  gitlabSyncEnabled = gitlabSync != null && (
-    (builtins.isAttrs gitlabSyncNormalized && gitlabSyncNormalized.default)
-    || gitlabSync == true
   );
 
   # Standalone release workflow (binstall-compatible, triggers on v* tags)
@@ -246,12 +241,10 @@ let
   else {};
 
   # GitLab sync workflow (triggers on any push)
-  gitlabSyncWorkflow = if gitlabSyncEnabled then
+  gitlabSyncWorkflow = if gitlabSync != null then
     let
-      syncSpec = import files.sync-gitlab (
-        if builtins.isAttrs gitlabSync then gitlabSync else { default = true; }
-      );
-    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs syncSpec [ "standalone" "default" ])
+      syncSpec = import files.sync-gitlab gitlabSync.mirrorUrl;
+    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs syncSpec [ "standalone" ])
   else null;
 
   # Generate load_nix job for a section if it has packages

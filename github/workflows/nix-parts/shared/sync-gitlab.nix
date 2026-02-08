@@ -1,9 +1,6 @@
 # Generates workflow for syncing to a GitLab mirror
-# Requires GITLAB_MIRROR_URL and GITLAB_TOKEN secrets in GitHub repo
-{
-  defaults ? false,
-  default ? defaults,
-}:
+# Requires GITLAB_TOKEN secret in GitHub repo
+mirrorUrl:
 {
   standalone = true;
 
@@ -25,23 +22,14 @@
         {
           name = "Check required secrets";
           run = ''
-            missing=""
-            if [ -z "${"$"}{{ secrets.GITLAB_MIRROR_URL }}" ]; then
-              missing="''${missing}  - GITLAB_MIRROR_URL: The GitLab repository URL (e.g., https://gitlab.com/username/repo.git)\n"
-            fi
             if [ -z "${"$"}{{ secrets.GITLAB_TOKEN }}" ]; then
-              missing="''${missing}  - GITLAB_TOKEN: A GitLab personal access token with write_repository scope\n"
-            fi
-            if [ -n "$missing" ]; then
-              echo "::error::Missing required secrets for GitLab sync:"
-              printf "$missing" >&2
+              echo "::error::Missing required secret GITLAB_TOKEN for GitLab sync"
               echo ""
               echo "To configure:"
               echo "  1. Go to your GitLab account -> Settings -> Access Tokens"
               echo "  2. Create a token with 'write_repository' scope"
               echo "  3. In this GitHub repo, go to Settings -> Secrets and variables -> Actions"
-              echo "  4. Add GITLAB_MIRROR_URL (e.g., https://gitlab.com/username/repo.git)"
-              echo "  5. Add GITLAB_TOKEN with your GitLab access token"
+              echo "  4. Add GITLAB_TOKEN with your GitLab access token"
               exit 1
             fi
           '';
@@ -57,8 +45,8 @@
           name = "Configure GitLab mirror settings";
           run = ''
             # Extract project path from URL (e.g., "username/repo" from "https://gitlab.com/username/repo.git")
-            gitlab_host=$(echo "${"$"}{{ secrets.GITLAB_MIRROR_URL }}" | sed -E 's|https?://([^/]+).*|\1|')
-            project_path=$(echo "${"$"}{{ secrets.GITLAB_MIRROR_URL }}" | sed -E 's|https?://[^/]+/(.+)\.git|\1|' | sed 's|/|%2F|g')
+            gitlab_host=$(echo "${mirrorUrl}" | sed -E 's|https?://([^/]+).*|\1|')
+            project_path=$(echo "${mirrorUrl}" | sed -E 's|https?://[^/]+/(.+)\.git|\1|' | sed 's|/|%2F|g')
             github_url="https://github.com/${"$"}{{ github.repository }}"
 
             # Disable issues, MRs, wiki, etc. and set description pointing to GitHub
@@ -80,7 +68,7 @@
           name = "Push to GitLab mirror";
           run = ''
             # Extract host from URL for credential configuration
-            gitlab_host=$(echo "${"$"}{{ secrets.GITLAB_MIRROR_URL }}" | sed -E 's|https?://([^/]+).*|\1|')
+            gitlab_host=$(echo "${mirrorUrl}" | sed -E 's|https?://([^/]+).*|\1|')
             github_url="https://github.com/${"$"}{{ github.repository }}"
 
             # Configure git credentials
@@ -107,7 +95,7 @@
             fi
 
             # Add GitLab remote
-            git remote add gitlab "${"$"}{{ secrets.GITLAB_MIRROR_URL }}"
+            git remote add gitlab "${mirrorUrl}"
 
             # Push LFS objects if repo uses LFS (no-op if not)
             if [ -f ".gitattributes" ] && grep -q "filter=lfs" .gitattributes; then
