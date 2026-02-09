@@ -99,12 +99,9 @@ mirrorBaseUrl:
             # Add GitLab remote
             git remote add gitlab "''${mirror_url}"
 
-            # Push LFS objects if repo uses LFS (no-op if not)
-            if [ -f ".gitattributes" ] && grep -q "filter=lfs" .gitattributes; then
-              git lfs push --all gitlab
-            fi
-
-            # Push all branches and tags
+            # Push all branches and tags, allowing incomplete LFS
+            # (historical LFS objects may be missing if files were deleted)
+            git config lfs.allowincompletepush true
             git push gitlab --all --force
             git push gitlab --tags --force
 
