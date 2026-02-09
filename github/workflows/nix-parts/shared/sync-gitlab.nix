@@ -99,11 +99,12 @@ mirrorBaseUrl:
             # Add GitLab remote
             git remote add gitlab "''${mirror_url}"
 
-            # Push all branches and tags, allowing incomplete LFS
-            # (historical LFS objects may be missing if files were deleted)
-            git config lfs.allowincompletepush true
-            git push gitlab --all --force
-            git push gitlab --tags --force
+            # Push all branches and tags
+            # Skip LFS during push to avoid failures from missing historical objects,
+            # then push available LFS objects separately (best-effort)
+            GIT_LFS_SKIP_PUSH=1 git push gitlab --all --force
+            GIT_LFS_SKIP_PUSH=1 git push gitlab --tags --force
+            git lfs push --all gitlab || true
 
             # Cleanup credentials
             rm -f ~/.git-credentials
