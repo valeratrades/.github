@@ -51,10 +51,11 @@ mirrorBaseUrl:
             github_url="https://github.com/${"$"}{{ github.repository }}"
 
             # Disable issues, MRs, wiki, etc. and set description pointing to GitHub
-            curl -sf --max-time 10 --request PUT \
+            curl -sf --max-time 30 --retry 2 --request PUT \
               --header "PRIVATE-TOKEN: ${"$"}{{ secrets.GITLAB_TOKEN }}" \
               --header "Content-Type: application/json" \
               --data '{
+                "lfs_enabled": false,
                 "issues_access_level": "disabled",
                 "merge_requests_access_level": "disabled",
                 "wiki_access_level": "disabled",
