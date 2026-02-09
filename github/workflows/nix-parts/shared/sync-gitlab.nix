@@ -51,7 +51,7 @@ mirrorBaseUrl:
             github_url="https://github.com/${"$"}{{ github.repository }}"
 
             # Disable issues, MRs, wiki, etc. and set description pointing to GitHub
-            curl -s --request PUT \
+            curl -sf --max-time 10 --request PUT \
               --header "PRIVATE-TOKEN: ${"$"}{{ secrets.GITLAB_TOKEN }}" \
               --header "Content-Type: application/json" \
               --data '{
@@ -62,7 +62,7 @@ mirrorBaseUrl:
                 "snippets_access_level": "disabled",
                 "description": "Mirror of '"''${github_url}"'. All development happens on GitHub."
               }' \
-              "https://''${gitlab_host}/api/v4/projects/''${project_path}" > /dev/null
+              "https://''${gitlab_host}/api/v4/projects/''${project_path}" > /dev/null || true
           '';
         }
         {
