@@ -3,6 +3,7 @@
   nixpkgs ? null,
   # config options
   cranelift ? true,
+  targets ? {},
   deny ? false,
   tracey ? true,
   style ? {},
@@ -124,7 +125,7 @@ let
     if stripped == "." || stripped == "" then "./build.rs" else "${stripped}/build.rs";
 
   rustfmtFile = files.rust.rustfmt { inherit pkgs; };
-  configFile = files.rust.config { inherit pkgs cranelift; };
+  configFile = files.rust.config { inherit pkgs cranelift targets; };
   denyFile = files.rust.deny { inherit pkgs; };
 
   # Generate a build file for each workspace directory with its specific modules
