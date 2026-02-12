@@ -29,6 +29,12 @@ See individual component descriptions in their respective directories.'';
         utils = import ./utils;
         files = import ./files;
 
+        github = (import ./github) {
+          inherit pkgs pname;
+          langs = [];
+          labels.extra = [];
+        };
+
         # README generation
         readme = (import ./readme_fw) {
           inherit pkgs pname;
@@ -40,13 +46,14 @@ See individual component descriptions in their respective directories.'';
       in
       {
         devShells.default = pkgs.mkShell {
-          packages = with pkgs; [ curl ];
+          packages = with pkgs; [ curl ] ++ github.enabledPackages;
           shellHook = ''
             _bump_script="./__scripts/bump_crate.rs"
             ${utils.checkCrateVersion { name = "tracey"; currentVersion = traceyVersion; bumpScript = "$_bump_script"; }}
             ${utils.checkCrateVersion { name = "codestyle"; currentVersion = codestyleVersion; bumpScript = "$_bump_script"; }}
             cp -f ${(files.gitignore { inherit pkgs; langs = [];})} ./.gitignore
             ${readme.shellHook}
+            ${github.labelSyncHook}
           '';
         };
       }
