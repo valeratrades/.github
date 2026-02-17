@@ -95,21 +95,19 @@ github = v-utils.github {
   # Override with style = { ... } or traceyCheck = ... if needed.
 
   # Binary releases for cargo-binstall (triggers on v* tags)
+  # Uses `nix build` - Linux targets build packages.static (musl), Darwin builds packages.default
   release = { default = true; };  # Use defaults
   # OR customize:
   release = {
-    targets = [ "x86_64-unknown-linux-gnu" "x86_64-apple-darwin" ];
-    cargoFlags = { "x86_64-pc-windows-msvc" = "--no-default-features"; };
-    aptDeps = [ "libssl-dev" "pkg-config" ];
+    targets = [ "x86_64-linux" "aarch64-darwin" ];
   };
 
   # Rolling "latest" releases per platform (triggers on branch push)
+  # Uses `nix build` - Linux targets build packages.static (musl), Darwin builds packages.default
   releaseLatest = { default = true; };  # Use defaults
   # OR customize:
   releaseLatest = {
-    platforms = [ "debian" "windows" ];
-    cargoFlags = { windows = "--no-default-features"; };
-    aptDeps = [ "libssl-dev" ];
+    targets = [ "x86_64-linux" "aarch64-linux" ];
     branch = "release";
   };
 

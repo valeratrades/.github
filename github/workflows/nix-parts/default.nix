@@ -28,10 +28,11 @@ Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust
 Standalone workflows:
 - release = { default = true; } or release = { targets = [...]; ... }
     Binary release for cargo-binstall (triggers on v* tags)
-    Default targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin
-- releaseLatest = { default = true; } or releaseLatest = { platforms = [...]; ... }
-    Rolling "latest" releases per platform (triggers on branch push)
-    Available platforms: debian, windows, macos
+    Uses nix build - Linux targets build packages.static (musl), Darwin builds packages.default
+    Default targets: x86_64-linux, aarch64-darwin
+- releaseLatest = { default = true; } or releaseLatest = { targets = [...]; ... }
+    Rolling "latest" releases per target (triggers on branch push)
+    Default targets: x86_64-linux, aarch64-linux
 - gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; }
     Sync to GitLab mirror (triggers on push to any branch/tag)
     Repo name is appended from GitHub context. Requires GITLAB_TOKEN secret

@@ -1,77 +1,49 @@
 # Generates release workflow for cargo-binstall compatible binary distribution
 # Triggers on version tags (v*), builds for multiple platforms, uploads to GitHub Releases
+# Uses `nix build` for proper reproducible builds with correct linking
 {
   # Set to true to use defaults, or customize individual fields
   # Accepts both `default` and `defaults` as aliases
   defaults ? false,
   default ? defaults,
+  # Targets as Nix system strings. Each gets a GHA runner + nix build.
+  # Linux targets produce musl-static binaries (packages.static) for portability.
   targets ? [
-    "x86_64-unknown-linux-gnu"
-    "x86_64-apple-darwin"
-    "aarch64-apple-darwin"
+    "x86_64-linux"
+    "aarch64-darwin"
   ],
-  # Optional cargo flags per target (e.g., for --no-default-features on windows)
-  cargoFlags ? {},
-  # Install config from parent (top-level or per-section): { packages = [...]; apt = [...]; debug = bool; }
+  # Install config from parent - no longer used for release (nix build handles deps)
   installConfig ? {},
-  # Legacy params (deprecated)
+  # Legacy params (deprecated, ignored)
   install ? {},
   aptDeps ? [],
+  cargoFlags ? {},
 }:
 let
-  targetToOs = target:
-    if builtins.match ".*-linux-.*" target != null then "ubuntu-latest"
-    else if builtins.match ".*-apple-.*" target != null then "macos-latest"
-    else if builtins.match ".*-windows-.*" target != null then "windows-latest"
+  nixSystemToGhaOs = system:
+    if builtins.match ".*-linux" system != null then "ubuntu-latest"
+    else if builtins.match ".*-darwin" system != null then "macos-latest"
     else "ubuntu-latest";
 
-  matrixInclude = map (target: {
-    inherit target;
-    os = targetToOs target;
-    cargo_flags = cargoFlags.${target} or "";
+  # Map nix system to cargo triple for tarball naming (cargo-binstall compat)
+  nixSystemToCargoTriple = system:
+    if system == "x86_64-linux" then "x86_64-unknown-linux-musl"
+    else if system == "aarch64-linux" then "aarch64-unknown-linux-musl"
+    else if system == "x86_64-darwin" then "x86_64-apple-darwin"
+    else if system == "aarch64-darwin" then "aarch64-apple-darwin"
+    else system;
+
+  isLinux = system: builtins.match ".*-linux" system != null;
+
+  matrixInclude = map (system: {
+    inherit system;
+    os = nixSystemToGhaOs system;
+    cargo_triple = nixSystemToCargoTriple system;
+    # Linux builds use packages.static (musl) for portable binaries
+    nix_pkg = if isLinux system then ".#packages.${system}.static" else ".#packages.${system}.default";
   }) targets;
-
-  # Merge all install sources: installConfig (from parent) > install > aptDeps (legacy)
-  effectivePackages = installConfig.packages or (install.packages or []);
-  effectiveApt = (installConfig.apt or (install.apt or [])) ++ aptDeps;
-  effectiveDebug = installConfig.debug or (install.debug or false);
-  _ = if aptDeps != [] then builtins.trace "WARNING: release.aptDeps is deprecated, use install.packages instead" null else null;
-
-  installSteps = import ../shared/install.nix {
-    packages = effectivePackages;
-    apt = effectiveApt;
-    debug = effectiveDebug;
-  };
-
-  hasNixPackages = effectivePackages != [];
-
-  # Nix-shell wrapping for run steps (same logic as importFile in default.nix)
-  allPackages = effectivePackages ++ [ "openssl.out" "openssl.dev" ];
-  pkgList = builtins.concatStringsSep " " allPackages;
-  ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
-    "export LD_LIBRARY_PATH=\\\"\\$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\\\${LD_LIBRARY_PATH:+:}\\$LD_LIBRARY_PATH\\\" && "
-  ) allPackages);
-  # Escape for embedding in double-quoted nix-shell --command "...", preserving ${{ }} GHA expressions
-  escapeForNixShell = s:
-    let
-      # First protect ${{ }} expressions with a placeholder
-      protected = builtins.replaceStrings ["\${{"] ["__GHA_EXPR__"] s;
-      # Escape quotes and remaining $
-      escaped = builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] protected;
-      # Restore ${{ }} expressions unescaped
-    in builtins.replaceStrings ["__GHA_EXPR__"] ["\${{"] escaped;
-  wrapRun = run:
-    if !hasNixPackages then run
-    else if builtins.substring 0 4 run == "nix " then run
-    else if builtins.substring 0 9 run == "nix-shell" then run
-    else if builtins.substring 0 5 run == "echo " then run
-    else "nix-shell -p ${pkgList} --command \"${ldLibPathSetup}${escapeForNixShell run}\"";
-  wrapStep = step:
-    if step ? run then step // { run = wrapRun step.run; }
-    else step;
 in
 {
-  # This is a standalone workflow, not a job within errors/warnings/other
   standalone = true;
 
   name = "Release";
@@ -100,51 +72,32 @@ in
       steps = [
         { uses = "actions/checkout@v4"; }
         {
-          uses = "dtolnay/rust-toolchain@nightly";
-          "with" = {
-            targets = "\${{ matrix.target }}";
-          };
+          name = "Install Nix";
+          uses = "DeterminateSystems/nix-installer-action@main";
         }
         {
-          name = "Install mold";
-          "if" = "runner.os == 'Linux'";
-          uses = "rui314/setup-mold@v1";
+          name = "Setup Nix cache";
+          uses = "DeterminateSystems/magic-nix-cache-action@main";
         }
-      ] ++ installSteps ++ [
         {
-          name = "Remove dev cargo config";
-          run = "rm -f .cargo/config.toml .cargo/config";
-        }
-        (wrapStep {
           name = "Build release binary";
-          run = "cargo build --release --target \${{ matrix.target }} \${{ matrix.cargo_flags }}";
-        })
+          run = "nix build \${{ matrix.nix_pkg }} --no-link --print-out-paths | tee /tmp/nix-out";
+        }
         {
-          name = "Package binary (unix)";
-          "if" = "runner.os != 'Windows'";
+          name = "Package binary";
           run = ''
-            cd target/''${{ matrix.target }}/release
             PNAME="''${GITHUB_REPOSITORY##*/}"
-            tar -czvf ../../../''${PNAME}-''${{ matrix.target }}.tar.gz ''$PNAME
+            OUT=$(cat /tmp/nix-out)
+            cp "''${OUT}/bin/''${PNAME}" ./
+            tar -czvf "''${PNAME}-''${{ matrix.cargo_triple }}.tar.gz" "''${PNAME}"
           '';
         }
-        {
-          name = "Package binary (windows)";
-          "if" = "runner.os == 'Windows'";
-          run = ''
-            cd target/''${{ matrix.target }}/release
-            ''$PNAME = ''$env:GITHUB_REPOSITORY.Split('/')[-1]
-            Compress-Archive -Path "''$PNAME.exe" -DestinationPath "../../../''$PNAME-''${{ matrix.target }}.zip"
-          '';
-          shell = "pwsh";
-        }
-      ] ++ [
         {
           name = "Upload artifact";
           uses = "actions/upload-artifact@v4";
           "with" = {
-            name = "binary-\${{ matrix.target }}";
-            path = "*.tar.gz\n*.zip";
+            name = "binary-\${{ matrix.cargo_triple }}";
+            path = "*.tar.gz";
           };
         }
       ];
