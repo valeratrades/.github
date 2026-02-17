@@ -167,6 +167,12 @@ let
       ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
         "export LD_LIBRARY_PATH=\\\"\\$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\\\${LD_LIBRARY_PATH:+:}\\$LD_LIBRARY_PATH\\\" && "
       ) allPackages);
+      # Escape for embedding in double-quoted nix-shell --command "...", preserving ${{ }} GHA expressions
+      escapeForNixShell = s:
+        let
+          protected = builtins.replaceStrings ["\${{"] ["__GHA_EXPR__"] s;
+          escaped = builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] protected;
+        in builtins.replaceStrings ["__GHA_EXPR__"] ["\${{"] escaped;
       wrapStep = step:
         if shellPrefix == "" then step
         else if step ? run then
@@ -174,7 +180,7 @@ let
           if builtins.substring 0 4 step.run == "nix " then step
           else if builtins.substring 0 9 step.run == "nix-shell" then step
           else if builtins.substring 0 5 step.run == "echo " then step
-          else step // { run = "nix-shell -p ${pkgList} --command \"${ldLibPathSetup}${builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] step.run}\""; }
+          else step // { run = "nix-shell -p ${pkgList} --command \"${ldLibPathSetup}${escapeForNixShell step.run}\""; }
         else step;
       valueWithWrappedRuns = if needsNix then
         valueWithInstall // { steps = map wrapStep valueWithInstall.steps; }
