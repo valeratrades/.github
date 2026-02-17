@@ -111,6 +111,10 @@ in
           uses = "rui314/setup-mold@v1";
         }
       ] ++ installSteps ++ [
+        {
+          name = "Remove dev cargo config";
+          run = "rm -f .cargo/config.toml .cargo/config";
+        }
         (wrapStep {
           name = "Build release binary";
           run = "cargo build --release --target \${{ matrix.target }} \${{ matrix.cargo_flags }}";

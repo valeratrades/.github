@@ -116,6 +116,10 @@ let
               name = "Install mold";
               uses = "rui314/setup-mold@v1";
             }] else []) ++ installSteps ++ [
+            {
+              name = "Remove dev cargo config";
+              run = "rm -f .cargo/config.toml .cargo/config";
+            }
             (wrapStep {
               name = "Build release binary";
               run = "cargo build --release --target ${target}${if flags != "" then " ${flags}" else ""}";
