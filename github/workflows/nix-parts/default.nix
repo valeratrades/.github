@@ -1,6 +1,6 @@
 args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null, gitlabSync ? null,
-  # Per-section install dependencies: { apt = [ "pkg1" "pkg2" ]; }
-  installErrors ? {}, installWarnings ? {}, installOther ? {},
+  # Per-section install dependencies: { packages = [ "pkg1" ]; apt = [ "pkg2" ]; }
+  installErrors ? {}, installWarnings ? {}, installOther ? {}, installRelease ? {}, installReleaseLatest ? {},
 }:
 
 # If called with just nixpkgs (for flake description), return description attribute
@@ -223,18 +223,20 @@ let
   # Standalone release workflow (binstall-compatible, triggers on v* tags)
   releaseWorkflow = if releaseEnabled then
     let
-      releaseSpec = import files.rust-release (
-        if builtins.isAttrs release then release else { default = true; }
-      );
+      releaseArgs = (if builtins.isAttrs release then release else { default = true; }) // {
+        installConfig = installRelease;
+      };
+      releaseSpec = import files.rust-release releaseArgs;
     in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" "default" ])
   else null;
 
   # Rolling "latest" release workflows (per-platform, triggers on branch push)
   releaseLatestWorkflows = if releaseLatestEnabled then
     let
-      spec = import files.rust-release-latest (
-        if builtins.isAttrs releaseLatest then releaseLatest else { default = true; }
-      );
+      releaseLatestArgs = (if builtins.isAttrs releaseLatest then releaseLatest else { default = true; }) // {
+        installConfig = installReleaseLatest;
+      };
+      spec = import files.rust-release-latest releaseLatestArgs;
     in builtins.mapAttrs (name: wf:
       (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" "default" ])
     ) spec.workflows

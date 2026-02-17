@@ -3,6 +3,9 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   rs ? null,
   # Or override individually (these take precedence over rs)
   traceyCheck ? null, style ? null, styleFormat ? null, styleAssert ? null, moduleFlags ? null,
+  # Top-level install applies to all job sections (errors, warnings, other, release, releaseLatest)
+  # Per-section install overrides this.
+  install ? {},
   release ? null, releaseLatest ? null, gitlabSync ? null,
 }:
 
@@ -53,6 +56,10 @@ github = v-utils.github {
   lastSupportedVersion = "nightly-1.86";
   langs = [ "rs" ];  # For gitignore generation
 
+  # Top-level install applies to all sections (errors, warnings, other, release, releaseLatest)
+  # Per-section install overrides this.
+  install = { packages = [ "mold" "pkg-config" ]; };
+
   # Jobs configuration - new interface
   jobs = {
     default = true;  # Enable defaults for all sections (based on langs)
@@ -62,7 +69,7 @@ github = v-utils.github {
       default = true;        # Enable default error jobs for langs
       augment = [ "rust-miri" ];  # Add extra jobs
       exclude = [ "rust-doc" ];   # Remove from defaults
-      install = { packages = [ "wayland" "libxkbcommon" ]; };  # nixpkgs attr names for all error jobs
+      install = { packages = [ "wayland" "libxkbcommon" ]; };  # Per-section override
     };
     warnings = {
       default = true;
@@ -205,14 +212,19 @@ let
   jobsWarnings = processJobsSection "warnings" (jobs.warnings or {}) topDefault;
   jobsOther = processJobsSection "other" (jobs.other or {}) topDefault;
 
-  # Extract install config from each section
-  installErrors = (jobs.errors or {}).install or {};
-  installWarnings = (jobs.warnings or {}).install or {};
-  installOther = (jobs.other or {}).install or {};
+  # Extract install config from each section, falling back to top-level install
+  effectiveInstall = section:
+    if builtins.isAttrs section && section ? install then section.install
+    else install;
+  installErrors = effectiveInstall (jobs.errors or {});
+  installWarnings = effectiveInstall (jobs.warnings or {});
+  installOther = effectiveInstall (jobs.other or {});
+  installRelease = effectiveInstall (if builtins.isAttrs release then release else {});
+  installReleaseLatest = effectiveInstall (if builtins.isAttrs releaseLatest then releaseLatest else {});
 
   workflows = import ./workflows/nix-parts {
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest gitlabSync;
-    inherit installErrors installWarnings installOther;
+    inherit installErrors installWarnings installOther installRelease installReleaseLatest;
   };
 
   # Process labels config (accepts both `default` and `defaults`)

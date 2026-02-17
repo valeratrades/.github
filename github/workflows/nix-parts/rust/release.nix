@@ -12,10 +12,10 @@
   ],
   # Optional cargo flags per target (e.g., for --no-default-features on windows)
   cargoFlags ? {},
-  # Shared dependencies: { apt = [ "pkg1" ... ]; }
+  # Install config from parent (top-level or per-section): { packages = [...]; apt = [...]; debug = bool; }
+  installConfig ? {},
+  # Legacy params (deprecated)
   install ? {},
-  #DEPRECATE: remove aptDeps param
-  # Legacy: aptDeps (deprecated, use install.apt instead)
   aptDeps ? [],
 }:
 let
@@ -31,10 +31,35 @@ let
     cargo_flags = cargoFlags.${target} or "";
   }) targets;
 
-  # Merge legacy aptDeps with new install.apt
-  effectiveApt = (install.apt or []) ++ aptDeps;
-  _ = if aptDeps != [] then builtins.trace "WARNING: release.aptDeps is deprecated, use release.install.apt instead" null else null;
-  installSteps = import ../shared/install.nix { apt = effectiveApt; };
+  # Merge all install sources: installConfig (from parent) > install > aptDeps (legacy)
+  effectivePackages = installConfig.packages or (install.packages or []);
+  effectiveApt = (installConfig.apt or (install.apt or [])) ++ aptDeps;
+  effectiveDebug = installConfig.debug or (install.debug or false);
+  _ = if aptDeps != [] then builtins.trace "WARNING: release.aptDeps is deprecated, use install.packages instead" null else null;
+
+  installSteps = import ../shared/install.nix {
+    packages = effectivePackages;
+    apt = effectiveApt;
+    debug = effectiveDebug;
+  };
+
+  hasNixPackages = effectivePackages != [];
+
+  # Nix-shell wrapping for run steps (same logic as importFile in default.nix)
+  allPackages = effectivePackages ++ [ "openssl.out" "openssl.dev" ];
+  pkgList = builtins.concatStringsSep " " allPackages;
+  ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
+    "export LD_LIBRARY_PATH=\\\"\\$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\\\${LD_LIBRARY_PATH:+:}\\$LD_LIBRARY_PATH\\\" && "
+  ) allPackages);
+  wrapRun = run:
+    if !hasNixPackages then run
+    else if builtins.substring 0 4 run == "nix " then run
+    else if builtins.substring 0 9 run == "nix-shell" then run
+    else if builtins.substring 0 5 run == "echo " then run
+    else "nix-shell -p ${pkgList} --command \"${ldLibPathSetup}${builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] run}\"";
+  wrapStep = step:
+    if step ? run then step // { run = wrapRun step.run; }
+    else step;
 in
 {
   # This is a standalone workflow, not a job within errors/warnings/other
@@ -77,10 +102,10 @@ in
           uses = "rui314/setup-mold@v1";
         }
       ] ++ installSteps ++ [
-        {
+        (wrapStep {
           name = "Build release binary";
           run = "cargo build --release --target \${{ matrix.target }} \${{ matrix.cargo_flags }}";
-        }
+        })
         {
           name = "Package binary (unix)";
           "if" = "runner.os != 'Windows'";
@@ -100,6 +125,7 @@ in
           '';
           shell = "pwsh";
         }
+      ] ++ [
         {
           name = "Upload artifact";
           uses = "actions/upload-artifact@v4";

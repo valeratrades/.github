@@ -12,10 +12,10 @@
   ],
   # Optional cargo flags per target
   cargoFlags ? {},
-  # Shared dependencies: { apt = [ "pkg1" ... ]; }
+  # Install config from parent (top-level or per-section): { packages = [...]; apt = [...]; debug = bool; }
+  installConfig ? {},
+  # Legacy params (deprecated)
   install ? {},
-  #DEPRECATE: remove aptDeps param
-  # Legacy: aptDeps (deprecated, use install.apt instead)
   aptDeps ? [],
   # Branch that triggers the release
   branch ? "release",
@@ -38,9 +38,29 @@ let
   isWindows = target: builtins.match ".*-windows-.*" target != null;
   isLinux = target: builtins.match ".*-linux-.*" target != null;
 
-  # Merge legacy aptDeps with new install.apt
-  effectiveApt = (install.apt or []) ++ aptDeps;
-  _ = if aptDeps != [] then builtins.trace "WARNING: releaseLatest.aptDeps is deprecated, use releaseLatest.install.apt instead" null else null;
+  # Merge all install sources: installConfig (from parent) > install > aptDeps (legacy)
+  effectivePackages = installConfig.packages or (install.packages or []);
+  effectiveApt = (installConfig.apt or (install.apt or [])) ++ aptDeps;
+  effectiveDebug = installConfig.debug or (install.debug or false);
+  _ = if aptDeps != [] then builtins.trace "WARNING: releaseLatest.aptDeps is deprecated, use install.packages instead" null else null;
+
+  hasNixPackages = effectivePackages != [];
+
+  # Nix-shell wrapping for run steps
+  allPackages = effectivePackages ++ [ "openssl.out" "openssl.dev" ];
+  pkgList = builtins.concatStringsSep " " allPackages;
+  ldLibPathSetup = builtins.concatStringsSep "" (map (pkg:
+    "export LD_LIBRARY_PATH=\\\"\\$(nix-build '<nixpkgs>' -A ${pkg} --no-out-link)/lib\\\${LD_LIBRARY_PATH:+:}\\$LD_LIBRARY_PATH\\\" && "
+  ) allPackages);
+  wrapRun = run:
+    if !hasNixPackages then run
+    else if builtins.substring 0 4 run == "nix " then run
+    else if builtins.substring 0 9 run == "nix-shell" then run
+    else if builtins.substring 0 5 run == "echo " then run
+    else "nix-shell -p ${pkgList} --command \"${ldLibPathSetup}${builtins.replaceStrings ["\"" "$"] ["\\\"" "\\$"] run}\"";
+  wrapStep = step:
+    if step ? run then step // { run = wrapRun step.run; }
+    else step;
 
   makeWorkflow = target:
     let
@@ -48,9 +68,13 @@ let
       shortName = targetToShortName target;
       flags = cargoFlags.${target} or "";
       binarySuffix = if isWindows target then ".exe" else "";
-      # For per-target workflows, no runtime OS check needed (linuxOnly = false)
       installSteps = if isLinux target
-        then import ../shared/install.nix { apt = effectiveApt; linuxOnly = false; }
+        then import ../shared/install.nix {
+          packages = effectivePackages;
+          apt = effectiveApt;
+          debug = effectiveDebug;
+          linuxOnly = false;
+        }
         else [];
     in {
       standalone = true;
@@ -86,10 +110,11 @@ let
               name = "Install mold";
               uses = "rui314/setup-mold@v1";
             }] else []) ++ installSteps ++ [
-            {
+            (wrapStep {
               name = "Build release binary";
               run = "cargo build --release --target ${target}${if flags != "" then " ${flags}" else ""}";
-            }
+            })
+          ] ++ [
             {
               name = "Upload artifact";
               uses = "actions/upload-artifact@v4";
