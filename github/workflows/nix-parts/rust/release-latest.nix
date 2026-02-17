@@ -73,7 +73,7 @@ let
             }
             {
               name = "Build release binary";
-              run = "nix build ${nixPkg} --no-link --print-out-paths | tee /tmp/nix-out";
+              run = "set -o pipefail && nix build ${nixPkg} --no-link --print-out-paths | tee /tmp/nix-out";
             }
             {
               name = "Copy binary";

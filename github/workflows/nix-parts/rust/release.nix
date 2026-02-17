@@ -81,7 +81,7 @@ in
         }
         {
           name = "Build release binary";
-          run = "nix build \${{ matrix.nix_pkg }} --no-link --print-out-paths | tee /tmp/nix-out";
+          run = "set -o pipefail && nix build \${{ matrix.nix_pkg }} --no-link --print-out-paths | tee /tmp/nix-out";
         }
         {
           name = "Package binary";
