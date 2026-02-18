@@ -31,6 +31,7 @@ in
       "with".toolchain = "\${{matrix.rust}}";
     }
     {
+      #DEPRECATE: when nix-env sharing is better than dtolnay's pre_ci
       name = "Install mold";
       uses = "rui314/setup-mold@v1";
     }

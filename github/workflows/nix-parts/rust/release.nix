@@ -120,12 +120,7 @@ in
       needs = "build";
       runs-on = "ubuntu-latest";
       steps = [
-        {
-          uses = "actions/checkout@v4";
-          "with" = {
-            fetch-depth = 0;
-          };
-        }
+        { uses = "actions/checkout@v4"; }
         {
           name = "Resolve release tag";
           id = "tag";
@@ -133,12 +128,12 @@ in
             if [[ "''${{ github.ref_type }}" == "tag" ]]; then
               echo "tag=''${{ github.ref_name }}" >> "''$GITHUB_OUTPUT"
             else
-              TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo "")
-              if [[ -z "''$TAG" ]]; then
-                echo "::error::No version tag found"
+              VERSION=$(sed -n '/^\[package\]/,/^\[/{s/^version *= *"\(.*\)"/\1/p}' Cargo.toml | head -1)
+              if [[ -z "''$VERSION" ]]; then
+                echo "::error::No version found in Cargo.toml [package] section. Cannot infer release tag for workflow_dispatch."
                 exit 1
               fi
-              echo "tag=''$TAG" >> "''$GITHUB_OUTPUT"
+              echo "tag=v''$VERSION" >> "''$GITHUB_OUTPUT"
             fi
           '';
         }
