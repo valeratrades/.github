@@ -1,49 +1,38 @@
 # Generates release workflow for cargo-binstall compatible binary distribution
 # Triggers on version tags (v*), builds for multiple platforms, uploads to GitHub Releases
-# Uses `nix build` for proper reproducible builds with correct linking
 {
   # Set to true to use defaults, or customize individual fields
   # Accepts both `default` and `defaults` as aliases
   defaults ? false,
   default ? defaults,
-  # Targets as Nix system strings. Each gets a GHA runner + nix build.
-  # Linux targets produce musl-static binaries (packages.static) for portability.
   targets ? [
-    "x86_64-linux"
-    "aarch64-darwin"
+    "x86_64-unknown-linux-gnu"
+    "x86_64-apple-darwin"
+    "aarch64-apple-darwin"
   ],
-  # Install config from parent - no longer used for release (nix build handles deps)
-  installConfig ? {},
-  # Legacy params (deprecated, ignored)
-  install ? {},
-  aptDeps ? [],
+  # Optional cargo flags per target (e.g., for --no-default-features on windows)
   cargoFlags ? {},
+  # Optional apt dependencies for linux builds
+  aptDeps ? [],
+  # Legacy params (ignored, kept for backwards compat)
+  installConfig ? {},
+  install ? {},
 }:
 let
-  nixSystemToGhaOs = system:
-    if builtins.match ".*-linux" system != null then "ubuntu-latest"
-    else if builtins.match ".*-darwin" system != null then "macos-latest"
+  targetToOs = target:
+    if builtins.match ".*-linux-.*" target != null then "ubuntu-latest"
+    else if builtins.match ".*-apple-.*" target != null then "macos-latest"
+    else if builtins.match ".*-windows-.*" target != null then "windows-latest"
     else "ubuntu-latest";
 
-  # Map nix system to cargo triple for tarball naming (cargo-binstall compat)
-  nixSystemToCargoTriple = system:
-    if system == "x86_64-linux" then "x86_64-unknown-linux-musl"
-    else if system == "aarch64-linux" then "aarch64-unknown-linux-musl"
-    else if system == "x86_64-darwin" then "x86_64-apple-darwin"
-    else if system == "aarch64-darwin" then "aarch64-apple-darwin"
-    else system;
-
-  isLinux = system: builtins.match ".*-linux" system != null;
-
-  matrixInclude = map (system: {
-    inherit system;
-    os = nixSystemToGhaOs system;
-    cargo_triple = nixSystemToCargoTriple system;
-    # Linux builds use packages.static (musl) for portable binaries
-    nix_pkg = if isLinux system then ".#packages.${system}.static" else ".#packages.${system}.default";
+  matrixInclude = map (target: {
+    inherit target;
+    os = targetToOs target;
+    cargo_flags = cargoFlags.${target} or "";
   }) targets;
 in
 {
+  # This is a standalone workflow, not a job within errors/warnings/other
   standalone = true;
 
   name = "Release";
@@ -72,32 +61,57 @@ in
       steps = [
         { uses = "actions/checkout@v4"; }
         {
-          name = "Install Nix";
-          uses = "DeterminateSystems/nix-installer-action@main";
+          uses = "dtolnay/rust-toolchain@nightly";
+          "with" = {
+            targets = "\${{ matrix.target }}";
+          };
         }
         {
-          name = "Setup Nix cache";
-          uses = "DeterminateSystems/magic-nix-cache-action@main";
+          name = "Install mold";
+          "if" = "runner.os == 'Linux'";
+          uses = "rui314/setup-mold@v1";
+        }
+      ] ++ (if aptDeps != [] then [{
+          name = "Install dependencies";
+          "if" = "runner.os == 'Linux'";
+          run = ''
+            sudo apt-get update
+            sudo apt-get install -y ${builtins.concatStringsSep " " aptDeps}
+          '';
+        }] else []) ++ [
+        {
+          name = "Remove .cargo/config.toml";
+          run = "rm -f .cargo/config.toml .cargo/config";
         }
         {
           name = "Build release binary";
-          run = "set -o pipefail && nix build \${{ matrix.nix_pkg }} --no-link --print-out-paths | tee /tmp/nix-out";
+          run = "cargo build --release --target \${{ matrix.target }} \${{ matrix.cargo_flags }}";
         }
         {
-          name = "Package binary";
+          name = "Package binary (unix)";
+          "if" = "runner.os != 'Windows'";
           run = ''
+            cd target/''${{ matrix.target }}/release
             PNAME="''${GITHUB_REPOSITORY##*/}"
-            OUT=$(cat /tmp/nix-out)
-            cp "''${OUT}/bin/''${PNAME}" ./
-            tar -czvf "''${PNAME}-''${{ matrix.cargo_triple }}.tar.gz" "''${PNAME}"
+            tar -czvf ../../../''${PNAME}-''${{ matrix.target }}.tar.gz ''$PNAME
           '';
+        }
+        {
+          name = "Package binary (windows)";
+          "if" = "runner.os == 'Windows'";
+          run = ''
+            cd target/''${{ matrix.target }}/release
+            ''$PNAME = ''$env:GITHUB_REPOSITORY.Split('/')[-1]
+            Compress-Archive -Path "''$PNAME.exe" -DestinationPath "../../../''$PNAME-''${{ matrix.target }}.zip"
+          '';
+          shell = "pwsh";
         }
         {
           name = "Upload artifact";
           uses = "actions/upload-artifact@v4";
           "with" = {
-            name = "binary-\${{ matrix.cargo_triple }}";
-            path = "*.tar.gz";
+            name = "binary-\${{ matrix.target }}";
+            path = "*.tar.gz\n*.zip";
           };
         }
       ];
@@ -106,6 +120,28 @@ in
       needs = "build";
       runs-on = "ubuntu-latest";
       steps = [
+        {
+          uses = "actions/checkout@v4";
+          "with" = {
+            fetch-depth = 0;
+          };
+        }
+        {
+          name = "Resolve release tag";
+          id = "tag";
+          run = ''
+            if [[ "''${{ github.ref_type }}" == "tag" ]]; then
+              echo "tag=''${{ github.ref_name }}" >> "''$GITHUB_OUTPUT"
+            else
+              TAG=$(git describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null || echo "")
+              if [[ -z "''$TAG" ]]; then
+                echo "::error::No version tag found"
+                exit 1
+              fi
+              echo "tag=''$TAG" >> "''$GITHUB_OUTPUT"
+            fi
+          '';
+        }
         {
           uses = "actions/download-artifact@v4";
           "with" = {
@@ -117,6 +153,7 @@ in
           name = "Create Release";
           uses = "softprops/action-gh-release@v2";
           "with" = {
+            tag_name = "\${{ steps.tag.outputs.tag }}";
             files = "artifacts/*";
           };
           env = {

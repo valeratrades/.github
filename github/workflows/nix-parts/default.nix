@@ -1,6 +1,6 @@
 args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null, gitlabSync ? null,
   # Per-section install dependencies: { packages = [ "pkg1" ]; apt = [ "pkg2" ]; }
-  installErrors ? {}, installWarnings ? {}, installOther ? {}, installRelease ? {}, installReleaseLatest ? {},
+  installErrors ? {}, installWarnings ? {}, installOther ? {},
 }:
 
 # If called with just nixpkgs (for flake description), return description attribute
@@ -28,11 +28,11 @@ Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust
 Standalone workflows:
 - release = { default = true; } or release = { targets = [...]; ... }
     Binary release for cargo-binstall (triggers on v* tags)
-    Uses nix build - Linux targets build packages.static (musl), Darwin builds packages.default
-    Default targets: x86_64-linux, aarch64-darwin
+    Uses native cargo build with rustup toolchain
+    Default targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin
 - releaseLatest = { default = true; } or releaseLatest = { targets = [...]; ... }
     Rolling "latest" releases per target (triggers on branch push)
-    Default targets: x86_64-linux, aarch64-linux
+    Default targets: x86_64-unknown-linux-gnu, aarch64-apple-darwin
 - gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; }
     Sync to GitLab mirror (triggers on push to any branch/tag)
     Repo name is appended from GitHub context. Requires GITLAB_TOKEN secret
@@ -230,9 +230,7 @@ let
   # Standalone release workflow (binstall-compatible, triggers on v* tags)
   releaseWorkflow = if releaseEnabled then
     let
-      releaseArgs = (if builtins.isAttrs release then release else { default = true; }) // {
-        installConfig = installRelease;
-      };
+      releaseArgs = if builtins.isAttrs release then release else { default = true; };
       releaseSpec = import files.rust-release releaseArgs;
     in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" "default" ])
   else null;
@@ -240,9 +238,7 @@ let
   # Rolling "latest" release workflows (per-platform, triggers on branch push)
   releaseLatestWorkflows = if releaseLatestEnabled then
     let
-      releaseLatestArgs = (if builtins.isAttrs releaseLatest then releaseLatest else { default = true; }) // {
-        installConfig = installReleaseLatest;
-      };
+      releaseLatestArgs = if builtins.isAttrs releaseLatest then releaseLatest else { default = true; };
       spec = import files.rust-release-latest releaseLatestArgs;
     in builtins.mapAttrs (name: wf:
       (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" "default" ])

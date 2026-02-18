@@ -95,19 +95,19 @@ github = v-utils.github {
   # Override with style = { ... } or traceyCheck = ... if needed.
 
   # Binary releases for cargo-binstall (triggers on v* tags)
-  # Uses `nix build` - Linux targets build packages.static (musl), Darwin builds packages.default
+  # Uses native cargo build with rustup toolchain
   release = { default = true; };  # Use defaults
   # OR customize:
   release = {
-    targets = [ "x86_64-linux" "aarch64-darwin" ];
+    targets = [ "x86_64-unknown-linux-gnu" "x86_64-apple-darwin" "aarch64-apple-darwin" ];
+    aptDeps = [ "libssl-dev" ];  # Optional apt deps for linux builds
   };
 
   # Rolling "latest" releases per platform (triggers on branch push)
-  # Uses `nix build` - Linux targets build packages.static (musl), Darwin builds packages.default
   releaseLatest = { default = true; };  # Use defaults
   # OR customize:
   releaseLatest = {
-    targets = [ "x86_64-linux" "aarch64-linux" ];
+    targets = [ "x86_64-unknown-linux-gnu" "aarch64-apple-darwin" ];
     branch = "release";
   };
 
@@ -217,12 +217,10 @@ let
   installErrors = effectiveInstall (jobs.errors or {});
   installWarnings = effectiveInstall (jobs.warnings or {});
   installOther = effectiveInstall (jobs.other or {});
-  installRelease = effectiveInstall (if builtins.isAttrs release then release else {});
-  installReleaseLatest = effectiveInstall (if builtins.isAttrs releaseLatest then releaseLatest else {});
 
   workflows = import ./workflows/nix-parts {
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest gitlabSync;
-    inherit installErrors installWarnings installOther installRelease installReleaseLatest;
+    inherit installErrors installWarnings installOther;
   };
 
   # Process labels config (accepts both `default` and `defaults`)
