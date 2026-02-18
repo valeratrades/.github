@@ -4,9 +4,10 @@
 # packages: list of nixpkgs attribute name strings
 { packages ? [], apt ? [], linuxOnly ? true, debug ? false }:
 let
-  # Always include openssl.out (runtime libs) and openssl.dev (headers)
-  # because "openssl" alone resolves to openssl-bin which has no libraries
-  allPackages = packages ++ [ "openssl.out" "openssl.dev" ];
+  # Always include openssl.out (runtime libs), openssl.dev (headers), and pkg-config
+  # because "openssl" alone resolves to openssl-bin which has no libraries,
+  # and pkg-config is needed so openssl-sys finds nix headers, not system ones
+  allPackages = packages ++ [ "pkg-config" "openssl.out" "openssl.dev" ];
 
   pkgList = builtins.concatStringsSep " " allPackages;
 
