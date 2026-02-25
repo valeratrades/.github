@@ -219,11 +219,11 @@ let
   releaseNormalized = if builtins.isAttrs release then utils.optionalDefaults release else release;
   releaseLatestNormalized = if builtins.isAttrs releaseLatest then utils.optionalDefaults releaseLatest else releaseLatest;
   releaseEnabled = release != null && (
-    (builtins.isAttrs releaseNormalized && releaseNormalized.default)
+    (builtins.isAttrs releaseNormalized && (releaseNormalized.default or true))
     || release == true
   );
   releaseLatestEnabled = releaseLatest != null && (
-    (builtins.isAttrs releaseLatestNormalized && releaseLatestNormalized.default)
+    (builtins.isAttrs releaseLatestNormalized && (releaseLatestNormalized.default or true))
     || releaseLatest == true
   );
 
