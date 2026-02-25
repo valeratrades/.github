@@ -267,7 +267,7 @@ let
   workflows = {
     #TODO!!!!: construct all of this procedurally, as opposed to hardcoding `jobs` and `env` base to `rust-base`
     #Q: Potentially standardize each file providing a set of outs, like `jobs`, `env`, etc, then manually join on them?
-    errors = (pkgs.formats.yaml { }).generate "" (
+    errors = if jobsErrors != [] then (pkgs.formats.yaml { }).generate "" (
       pkgs.lib.recursiveUpdate base {
         name = "Errors";
         permissions = (import files.base).permissions;
@@ -276,9 +276,9 @@ let
           (pkgs.lib.recursiveUpdate (import files.rust-base).jobs (loadNixJob installErrors))
           (constructJobs installErrors jobsErrors);
       }
-    );
+    ) else null;
 
-    warnings = (pkgs.formats.yaml { }).generate "" (
+    warnings = if jobsWarnings != [] then (pkgs.formats.yaml { }).generate "" (
       pkgs.lib.recursiveUpdate base {
         name = "Warnings";
         permissions = (import files.base).permissions;
@@ -287,9 +287,9 @@ let
           (pkgs.lib.recursiveUpdate (import files.rust-base).jobs (loadNixJob installWarnings))
           (constructJobs installWarnings jobsWarnings);
       }
-    );
+    ) else null;
 
-    other = (pkgs.formats.yaml { }).generate "" (
+    other = if jobsOther != [] then (pkgs.formats.yaml { }).generate "" (
       pkgs.lib.recursiveUpdate base {
         name = "Other";
         permissions = (import files.base).permissions;
@@ -297,7 +297,7 @@ let
           (loadNixJob installOther)
           (constructJobs installOther jobsOther);
       }
-    );
+    ) else null;
   };
 
   ensureBinstallScript = ../../ensure_binstall_metadata.rs;
@@ -316,14 +316,24 @@ let
   gitlabSyncHook = if gitlabSyncWorkflow != null then ''
     cp -f ${gitlabSyncWorkflow} ./.github/workflows/sync_gitlab.yml
   '' else "";
+
+  errorsHook = if workflows.errors != null then ''
+    cp -f ${workflows.errors} ./.github/workflows/errors.yml
+  '' else "";
+  warningsHook = if workflows.warnings != null then ''
+    cp -f ${workflows.warnings} ./.github/workflows/warnings.yml
+  '' else "";
+  otherHook = if workflows.other != null then ''
+    cp -f ${workflows.other} ./.github/workflows/other.yml
+  '' else "";
 in
 workflows // {
   inherit releaseWorkflow releaseLatestWorkflows gitlabSyncWorkflow;
   shellHook = ''
     mkdir -p ./.github/workflows
-    cp -f ${workflows.errors} ./.github/workflows/errors.yml
-    cp -f ${workflows.warnings} ./.github/workflows/warnings.yml
-    cp -f ${workflows.other} ./.github/workflows/other.yml
+    ${errorsHook}
+    ${warningsHook}
+    ${otherHook}
     ${releaseHook}
     ${releaseLatestHook}
     ${gitlabSyncHook}
