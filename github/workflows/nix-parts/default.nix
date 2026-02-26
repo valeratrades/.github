@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, releaseLatest ? null, gitlabSync ? null,
+args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, gitlabSync ? null,
   # Per-section install dependencies: { packages = [ "pkg1" ]; apt = [ "pkg2" ]; }
   installErrors ? {}, installWarnings ? {}, installOther ? {},
 }:
@@ -26,13 +26,11 @@ workflows = import ./github/workflows/nix-parts {
 Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust-sorted, rust-sorted-derives, rust-unused-features, rust-leptosfmt, go-tests, go-gocritic, go-security-audit, tokei, loc-badge, code-duplication
 
 Standalone workflows:
-- release = { default = true; } or release = { targets = [...]; ... }
-    Binary release for cargo-binstall (triggers on v* tags)
-    Uses native cargo build with rustup toolchain
+- release = { }  # enabled by presence, disabled with `enable = false`
+    Binary release for cargo-binstall. Default trigger: "tag" (v* tags).
+    Set trigger = ["tag" "release_branch"] to also generate rolling per-target releases on branch push.
+    Uses native cargo build with rustup toolchain.
     Default targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin
-- releaseLatest = { default = true; } or releaseLatest = { targets = [...]; ... }
-    Rolling "latest" releases per target (triggers on branch push)
-    Default targets: x86_64-unknown-linux-gnu, aarch64-apple-darwin
 - gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; }
     Sync to GitLab mirror (triggers on push to any branch/tag)
     Repo name is appended from GitHub context. Requires GITLAB_TOKEN secret
@@ -214,32 +212,41 @@ let
       workflow_dispatch = { };
     };
   };
-  # Check if release config is enabled (default/defaults = true required, custom fields override defaults)
-  # Accepts both `default` and `defaults` via optionalDefaults
-  releaseNormalized = if builtins.isAttrs release then utils.optionalDefaults release else release;
-  releaseLatestNormalized = if builtins.isAttrs releaseLatest then utils.optionalDefaults releaseLatest else releaseLatest;
+  # release = { ... } is enabled by presence. Set `enable = false` to disable.
+  # `release = null` (the default) means no release workflows.
+  validTriggers = [ "tag" "release_branch" ];
   releaseEnabled = release != null && (
-    (builtins.isAttrs releaseNormalized && (releaseNormalized.default or true))
-    || release == true
-  );
-  releaseLatestEnabled = releaseLatest != null && (
-    (builtins.isAttrs releaseLatestNormalized && (releaseLatestNormalized.default or true))
-    || releaseLatest == true
+    if builtins.isAttrs release then (release.enable or true)
+    else abort "release must be an attrset, e.g. release = { trigger = \"tag\"; }"
   );
 
-  # Standalone release workflow (binstall-compatible, triggers on v* tags)
-  releaseWorkflow = if releaseEnabled then
+  # Normalize trigger to a list. Default is ["tag"].
+  releaseTrigger =
     let
-      releaseArgs = if builtins.isAttrs release then release else { default = true; };
+      raw = if builtins.isAttrs release then (release.trigger or ["tag"]) else ["tag"];
+      asList = if builtins.isList raw then raw else [raw];
+      invalid = builtins.filter (t: !(builtins.elem t validTriggers)) asList;
+    in
+    if invalid != [] then abort "release.trigger: unknown values ${builtins.toJSON invalid}. Valid: ${builtins.toJSON validTriggers}"
+    else asList;
+  hasTagTrigger = releaseEnabled && builtins.elem "tag" releaseTrigger;
+  hasReleaseBranchTrigger = releaseEnabled && builtins.elem "release_branch" releaseTrigger;
+
+  # Args forwarded to release.nix / release-latest.nix (strip routing-only fields)
+  releaseArgs = builtins.removeAttrs release [ "enable" "trigger" "branch" ];
+
+  # Standalone release workflow (binstall-compatible, triggers on v* tags)
+  releaseWorkflow = if hasTagTrigger then
+    let
       releaseSpec = import files.rust-release releaseArgs;
     in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" "default" ])
   else null;
 
   # Rolling "latest" release workflows (per-platform, triggers on branch push)
-  releaseLatestWorkflows = if releaseLatestEnabled then
+  releaseLatestWorkflows = if hasReleaseBranchTrigger then
     let
-      releaseLatestArgs = if builtins.isAttrs releaseLatest then releaseLatest else { default = true; };
-      spec = import files.rust-release-latest releaseLatestArgs;
+      latestArgs = releaseArgs // { branch = release.branch or "release"; };
+      spec = import files.rust-release-latest latestArgs;
     in builtins.mapAttrs (name: wf:
       (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" "default" ])
     ) spec.workflows

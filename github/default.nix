@@ -3,10 +3,10 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   rs ? null,
   # Or override individually (these take precedence over rs)
   traceyCheck ? null, style ? null, styleFormat ? null, styleAssert ? null, moduleFlags ? null,
-  # Top-level install applies to all job sections (errors, warnings, other, release, releaseLatest)
+  # Top-level install applies to all job sections (errors, warnings, other, release)
   # Per-section install overrides this.
   install ? {},
-  release ? null, releaseLatest ? null, gitlabSync ? null,
+  release ? null, gitlabSync ? null,
 }:
 
 # Priority: explicit params > rs module > defaults
@@ -56,7 +56,7 @@ github = v-utils.github {
   lastSupportedVersion = "nightly-1.86";
   langs = [ "rs" ];  # For gitignore generation
 
-  # Top-level install applies to all sections (errors, warnings, other, release, releaseLatest)
+  # Top-level install applies to all sections (errors, warnings, other, release)
   # Per-section install overrides this.
   install = { packages = [ "mold" "pkg-config" ]; };
 
@@ -94,21 +94,15 @@ github = v-utils.github {
   # Style settings are inherited from rs module automatically.
   # Override with style = { ... } or traceyCheck = ... if needed.
 
-  # Binary releases for cargo-binstall (triggers on v* tags)
-  # Uses native cargo build with rustup toolchain
-  release = { default = true; };  # Use defaults
+  # Binary releases — enabled by presence, disabled with `enable = false`
+  release = { };  # Defaults: tag trigger, standard targets
   # OR customize:
   release = {
     targets = [ "x86_64-unknown-linux-gnu" "x86_64-apple-darwin" "aarch64-apple-darwin" ];
     aptDeps = [ "libssl-dev" ];  # Optional apt deps for linux builds
-  };
-
-  # Rolling "latest" releases per platform (triggers on branch push)
-  releaseLatest = { default = true; };  # Use defaults
-  # OR customize:
-  releaseLatest = {
-    targets = [ "x86_64-unknown-linux-gnu" "aarch64-apple-darwin" ];
-    branch = "release";
+    # trigger: "tag" (default), "release_branch", or both:
+    trigger = [ "tag" "release_branch" ];
+    branch = "release";  # Branch for release_branch trigger (default: "release")
   };
 
   # GitLab mirror sync (triggers on any push)
@@ -219,7 +213,7 @@ let
   installOther = effectiveInstall (jobs.other or {});
 
   workflows = import ./workflows/nix-parts {
-    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release releaseLatest gitlabSync;
+    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release gitlabSync;
     inherit installErrors installWarnings installOther;
   };
 
