@@ -1,6 +1,10 @@
 # Generates per-target release workflows for cargo-binstall compatible binary distribution
 # Each target gets its own workflow file (release-{shortName}.yml)
 # Supports tag trigger (v* tags) and/or release_branch trigger (push to branch)
+#
+# Every run uploads to BOTH:
+#   1. A rolling `latest-{shortName}` pre-release (always)
+#   2. The versioned semver release (tag from push, or largest existing v* tag)
 {
   # Set to true to use defaults, or customize individual fields
   # Accepts both `default` and `defaults` as aliases
@@ -48,58 +52,10 @@ let
     let
       tagPart = if hasTag then { push.tags = [ "v[0-9]+.*" ]; } else {};
       branchPart = if hasBranch then { push.branches = [ branch ]; } else {};
-      # Merge push triggers
       pushPart = if hasTag && hasBranch then {
         push = { tags = [ "v[0-9]+.*" ]; branches = [ branch ]; };
       } else tagPart // branchPart;
     in pushPart // { workflow_dispatch = {}; };
-
-  # For tag trigger: resolve the tag name (from tag push or from Cargo.toml on workflow_dispatch)
-  # For branch trigger: use rolling "latest-{shortName}" tag
-  makeReleaseStep = target:
-    let
-      shortName = targetToShortName target;
-      binarySuffix = if isWindows target then ".exe" else "";
-      archiveName = if isWindows target
-        then "\${{ github.event.repository.name }}-${target}.zip"
-        else "\${{ github.event.repository.name }}-${target}.tar.gz";
-    in
-    if hasTag && !hasBranch then {
-      # Pure tag trigger: version-tagged release
-      name = "Create Release";
-      uses = "softprops/action-gh-release@v2";
-      "with" = {
-        tag_name = "\${{ steps.tag.outputs.tag }}";
-        files = archiveName;
-      };
-      env.GITHUB_TOKEN = "\${{ secrets.GITHUB_TOKEN }}";
-    }
-    else if !hasTag && hasBranch then {
-      # Pure branch trigger: rolling latest release
-      name = "Create Release";
-      uses = "softprops/action-gh-release@v2";
-      "with" = {
-        tag_name = "latest-${shortName}";
-        name = "Latest ${shortName}";
-        files = "target/${target}/release/\${{ github.event.repository.name }}${binarySuffix}";
-        prerelease = true;
-        make_latest = false;
-      };
-      env.GITHUB_TOKEN = "\${{ secrets.GITHUB_TOKEN }}";
-    }
-    else {
-      # Both triggers: decide at runtime
-      name = "Create Release";
-      uses = "softprops/action-gh-release@v2";
-      "with" = {
-        tag_name = "\${{ steps.release-meta.outputs.tag }}";
-        name = "\${{ steps.release-meta.outputs.name }}";
-        files = "\${{ steps.release-meta.outputs.files }}";
-        prerelease = "\${{ steps.release-meta.outputs.prerelease }}";
-        make_latest = "\${{ steps.release-meta.outputs.make_latest }}";
-      };
-      env.GITHUB_TOKEN = "\${{ secrets.GITHUB_TOKEN }}";
-    };
 
   makeWorkflow = target:
     let
@@ -107,7 +63,6 @@ let
       shortName = targetToShortName target;
       flags = cargoFlags.${target} or "";
       binarySuffix = if isWindows target then ".exe" else "";
-      binaryPath = "target/${target}/release/\${{ github.event.repository.name }}${binarySuffix}";
       archiveName = if isWindows target
         then "\${{ github.event.repository.name }}-${target}.zip"
         else "\${{ github.event.repository.name }}-${target}.tar.gz";
@@ -128,6 +83,10 @@ let
         runs-on = os;
         steps = [
           { uses = "actions/checkout@v4"; }
+          {
+            name = "Fetch tags";
+            run = "git fetch --tags --no-recurse-submodules";
+          }
           {
             uses = "dtolnay/rust-toolchain@nightly";
             "with" = {
@@ -157,7 +116,7 @@ let
             run = "cargo build --release --target ${target}${if flags != "" then " ${flags}" else ""}";
           }
         ]
-        # Package step: tar.gz for unix, zip for windows (needed for binstall compat)
+        # Package step: tar.gz for unix, zip for windows
         ++ (if isWindows target then [{
           name = "Package binary";
           run = ''
@@ -174,46 +133,54 @@ let
             tar -czvf ../../../''${PNAME}-${target}.tar.gz ''$PNAME
           '';
         }])
-        # Tag resolution step (only for tag trigger or dual trigger)
-        # Always use bash shell since these use bash syntax (windows defaults to pwsh)
-        ++ (if hasTag && !hasBranch then [{
-          name = "Resolve release tag";
-          id = "tag";
-          shell = "bash";
-          run = ''
-            if [[ "''${{ github.ref_type }}" == "tag" ]]; then
-              echo "tag=''${{ github.ref_name }}" >> "''$GITHUB_OUTPUT"
-            else
-              VERSION=$(sed -n '/^\[package\]/,/^\[/{s/^version *= *"\(.*\)"/\1/p}' Cargo.toml | head -1)
-              if [[ -z "''$VERSION" ]]; then
-                echo "::error::No version found in Cargo.toml [package] section"
-                exit 1
+        ++ [
+          # Resolve the semver tag to attach to.
+          # If triggered by a tag push, use that tag.
+          # Otherwise, find the largest existing v* tag.
+          # If no v* tags exist, skip the versioned release.
+          {
+            name = "Resolve version tag";
+            id = "version";
+            shell = "bash";
+            run = ''
+              if [[ "''${{ github.ref_type }}" == "tag" ]]; then
+                echo "tag=''${{ github.ref_name }}" >> "''$GITHUB_OUTPUT"
+              else
+                LATEST=$(git tag -l 'v[0-9]*' --sort=-v:refname | head -1)
+                if [[ -n "''$LATEST" ]]; then
+                  echo "tag=''$LATEST" >> "''$GITHUB_OUTPUT"
+                else
+                  echo "::notice::No existing v* tags found, skipping versioned release"
+                  echo "tag=" >> "''$GITHUB_OUTPUT"
+                fi
               fi
-              echo "tag=v''$VERSION" >> "''$GITHUB_OUTPUT"
-            fi
-          '';
-        }] else if hasTag && hasBranch then [{
-          name = "Resolve release metadata";
-          id = "release-meta";
-          shell = "bash";
-          run = ''
-            PNAME="''${GITHUB_REPOSITORY##*/}"
-            if [[ "''${{ github.ref_type }}" == "tag" ]]; then
-              echo "tag=''${{ github.ref_name }}" >> "''$GITHUB_OUTPUT"
-              echo "name=''${{ github.ref_name }}" >> "''$GITHUB_OUTPUT"
-              echo "files=${archiveName}" >> "''$GITHUB_OUTPUT"
-              echo "prerelease=false" >> "''$GITHUB_OUTPUT"
-              echo "make_latest=true" >> "''$GITHUB_OUTPUT"
-            else
-              echo "tag=latest-${shortName}" >> "''$GITHUB_OUTPUT"
-              echo "name=Latest ${shortName}" >> "''$GITHUB_OUTPUT"
-              echo "files=${binaryPath}" >> "''$GITHUB_OUTPUT"
-              echo "prerelease=true" >> "''$GITHUB_OUTPUT"
-              echo "make_latest=false" >> "''$GITHUB_OUTPUT"
-            fi
-          '';
-        }] else [])
-        ++ [ (makeReleaseStep target) ];
+            '';
+          }
+          # Always upload to rolling latest pre-release
+          {
+            name = "Release (latest)";
+            uses = "softprops/action-gh-release@v2";
+            "with" = {
+              tag_name = "latest-${shortName}";
+              name = "Latest ${shortName}";
+              files = archiveName;
+              prerelease = true;
+              make_latest = false;
+            };
+            env.GITHUB_TOKEN = "\${{ secrets.GITHUB_TOKEN }}";
+          }
+          # Also upload to the versioned release (if a version tag exists)
+          {
+            name = "Release (versioned)";
+            "if" = "steps.version.outputs.tag != ''";
+            uses = "softprops/action-gh-release@v2";
+            "with" = {
+              tag_name = "\${{ steps.version.outputs.tag }}";
+              files = archiveName;
+            };
+            env.GITHUB_TOKEN = "\${{ secrets.GITHUB_TOKEN }}";
+          }
+        ];
       };
     };
 in
