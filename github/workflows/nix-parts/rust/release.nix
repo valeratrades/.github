@@ -116,7 +116,7 @@ let
             run = "cargo build --release --target ${target}${if flags != "" then " ${flags}" else ""}";
           }
         ]
-        # Package step: tar.gz for unix, zip for windows
+        # Package into archive: cargo-binstall expects {name}-{target}.tar.gz / .zip
         ++ (if isWindows target then [{
           name = "Package binary";
           run = ''
