@@ -94,7 +94,8 @@ github = v-utils.github {
   # Style settings are inherited from rs module automatically.
   # Override with style = { ... } or traceyCheck = ... if needed.
 
-  # Binary releases — enabled by presence, disabled with `enable = false`
+  # Binary releases — one workflow per target (release-{shortName}.yml)
+  # Enabled by presence, disabled with `enable = false`
   release = { };  # Defaults: tag trigger, standard targets
   # OR customize:
   release = {

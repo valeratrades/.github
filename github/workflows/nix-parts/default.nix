@@ -27,9 +27,8 @@ Available jobs: rust-tests, rust-doc, rust-miri, rust-clippy, rust-machete, rust
 
 Standalone workflows:
 - release = { }  # enabled by presence, disabled with `enable = false`
-    Binary release for cargo-binstall. Default trigger: "tag" (v* tags).
-    Set trigger = ["tag" "release_branch"] to also generate rolling per-target releases on branch push.
-    Uses native cargo build with rustup toolchain.
+    Per-target binary release for cargo-binstall. Generates one workflow file per target (release-{shortName}.yml).
+    Default trigger: "tag" (v* tags). Set trigger = ["tag" "release_branch"] to also trigger on branch push.
     Default targets: x86_64-unknown-linux-gnu, x86_64-apple-darwin, aarch64-apple-darwin
 - gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; }
     Sync to GitLab mirror (triggers on push to any branch/tag)
@@ -86,7 +85,6 @@ let
     rust-sorted-derives = ./rust/sorted_derives.nix;
     rust-unused-features = ./rust/unused_features.nix;
     rust-release = ./rust/release.nix;
-    rust-release-latest = ./rust/release-latest.nix;
 		#,}}}
 
 		# go {{{
@@ -232,21 +230,17 @@ let
   hasTagTrigger = releaseEnabled && builtins.elem "tag" releaseTrigger;
   hasReleaseBranchTrigger = releaseEnabled && builtins.elem "release_branch" releaseTrigger;
 
-  # Args forwarded to release.nix / release-latest.nix (strip routing-only fields)
-  releaseArgs = builtins.removeAttrs release [ "enable" "trigger" "branch" ];
-
-  # Standalone release workflow (binstall-compatible, triggers on v* tags)
-  releaseWorkflow = if hasTagTrigger then
+  # Per-target release workflows (one file per target)
+  releaseWorkflows = if releaseEnabled then
     let
-      releaseSpec = import files.rust-release releaseArgs;
-    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs releaseSpec [ "standalone" "default" ])
-  else null;
-
-  # Rolling "latest" release workflows (per-platform, triggers on branch push)
-  releaseLatestWorkflows = if hasReleaseBranchTrigger then
-    let
-      latestArgs = releaseArgs // { branch = release.branch or "release"; };
-      spec = import files.rust-release-latest latestArgs;
+      releaseArgs = builtins.removeAttrs release [ "enable" "trigger" "branch" ] // {
+        triggers = {
+          tag = hasTagTrigger;
+          branch = hasReleaseBranchTrigger;
+        };
+        branch = release.branch or "release";
+      };
+      spec = import files.rust-release releaseArgs;
     in builtins.mapAttrs (name: wf:
       (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs wf [ "standalone" "filename" "default" ])
     ) spec.workflows
@@ -309,16 +303,44 @@ let
 
   ensureBinstallScript = ../../ensure_binstall_metadata.rs;
 
-  releaseHook = if releaseWorkflow != null then ''
-    cp -f ${releaseWorkflow} ./.github/workflows/release.yml
-    cargo -Zscript -q ${ensureBinstallScript}
-  '' else "";
+  releaseExpectedFiles = map (name: "release-${name}.yml") (builtins.attrNames releaseWorkflows);
 
-  releaseLatestHook = builtins.concatStringsSep "\n" (
-    pkgs.lib.mapAttrsToList (name: wf: ''
-      cp -f ${wf} ./.github/workflows/release-${name}.yml
-    '') releaseLatestWorkflows
-  );
+  releaseHook = if releaseWorkflows != {} then
+    let
+      copyCommands = builtins.concatStringsSep "\n" (
+        pkgs.lib.mapAttrsToList (name: wf: ''
+          cp -f ${wf} ./.github/workflows/release-${name}.yml
+        '') releaseWorkflows
+      );
+    in ''
+      ${copyCommands}
+      cargo -Zscript -q ${ensureBinstallScript}
+    ''
+  else "";
+
+  # Warn about stale files containing "release" in .github/workflows/ that we don't generate
+  releaseStaleWarningHook = if releaseEnabled then
+    let
+      expectedBash = builtins.concatStringsSep " " (map (f: ''"${f}"'') releaseExpectedFiles);
+    in ''
+      _release_stale=()
+      for f in ./.github/workflows/*release*; do
+        [ -e "$f" ] || continue
+        _base="$(basename "$f")"
+        _match=0
+        for _exp in ${expectedBash}; do
+          [ "$_base" = "$_exp" ] && _match=1 && break
+        done
+        [ "$_match" -eq 0 ] && _release_stale+=("$_base")
+      done
+      if [ ''${#_release_stale[@]} -gt 0 ]; then
+        printf '\033[33mwarning:\033[0m stale release files in .github/workflows/ (not matching selected targets):\n'
+        for _s in "''${_release_stale[@]}"; do
+          printf '  - %s\n' "$_s"
+        done
+      fi
+    ''
+  else "";
 
   gitlabSyncHook = if gitlabSyncWorkflow != null then ''
     cp -f ${gitlabSyncWorkflow} ./.github/workflows/sync_gitlab.yml
@@ -335,14 +357,14 @@ let
   '' else "";
 in
 workflows // {
-  inherit releaseWorkflow releaseLatestWorkflows gitlabSyncWorkflow;
+  inherit releaseWorkflows gitlabSyncWorkflow;
   shellHook = ''
     mkdir -p ./.github/workflows
     ${errorsHook}
     ${warningsHook}
     ${otherHook}
     ${releaseHook}
-    ${releaseLatestHook}
+    ${releaseStaleWarningHook}
     ${gitlabSyncHook}
   '';
 }
