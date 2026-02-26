@@ -80,8 +80,15 @@ in
           '';
         }] else []) ++ [
         {
-          name = "Remove .cargo/config.toml";
+          name = "Remove .cargo/config.toml (unix)";
+          "if" = "runner.os != 'Windows'";
           run = "rm -f .cargo/config.toml .cargo/config";
+        }
+        {
+          name = "Remove .cargo/config.toml (windows)";
+          "if" = "runner.os == 'Windows'";
+          run = "Remove-Item -Force -ErrorAction SilentlyContinue .cargo/config.toml, .cargo/config";
+          shell = "pwsh";
         }
         {
           name = "Build release binary";

@@ -84,10 +84,14 @@ let
                 sudo apt-get install -y ${builtins.concatStringsSep " " aptDeps}
               '';
             }] else []) ++ [
-            {
+            (if isWindows target then {
+              name = "Remove .cargo/config.toml";
+              run = "Remove-Item -Force -ErrorAction SilentlyContinue .cargo/config.toml, .cargo/config";
+              shell = "pwsh";
+            } else {
               name = "Remove .cargo/config.toml";
               run = "rm -f .cargo/config.toml .cargo/config";
-            }
+            })
             {
               name = "Build release binary";
               run = "cargo build --release --target ${target}${if flags != "" then " ${flags}" else ""}";
