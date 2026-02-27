@@ -157,7 +157,7 @@ let
       shellPrefix = nixShellPrefix installConfig;
       packages = installConfig.packages or [];
       # Always include openssl.out (runtime libs), openssl.dev (headers), and pkg-config (so openssl-sys finds nix headers, not system ones)
-      allPackages = packages ++ [ "pkg-config" "openssl.out" "openssl.dev" "mold" /*everything I have is on rust, so*/];
+      allPackages = packages ++ [ "pkg-config" "openssl.out" "openssl.dev" ]; #Q: should that include "mold"?
       pkgList = builtins.concatStringsSep " " allPackages;
       # Build LD_LIBRARY_PATH setup using nix-build to get exact store paths
       # This is needed on non-NixOS systems (like GHA Ubuntu) where runtime libraries aren't in default search paths
