@@ -127,6 +127,7 @@ The shellHook will:
 
 enabledPackages includes:
 - `git_ops` - GitHub operations (sync-labels, etc.)
+- `code_duplication` - Run the same duplication detection used in CI locally (requires qlty)
 '';
 } else
 
@@ -235,6 +236,7 @@ let
   );
 
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
+  code_duplication = import ./code_duplication.nix { inherit pkgs; script = ./workflows/code-duplication.rs; };
 
   # Process preCommit config
   # can be very slow
@@ -263,7 +265,7 @@ in
   appendCustom = ./append_custom.rs;
   preCommit = import ./pre_commit.nix;
 
-  inherit git_ops labelSyncHook;
+  inherit git_ops code_duplication labelSyncHook;
 
   shellHook = ''
     ${workflows.shellHook}
@@ -273,5 +275,5 @@ in
     ${labelSyncHook}
   '';
 
-  enabledPackages = [ git_ops pkgs.treefmt ] ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else []); #Q: not sure if this is the right place to bring in `treefmt`. But git-hooks seems to have had seized managing it correctly, so keep it here for now.
+  enabledPackages = [ git_ops code_duplication pkgs.treefmt ] ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else []); #Q: not sure if this is the right place to bring in `treefmt`. But git-hooks seems to have had seized managing it correctly, so keep it here for now.
 }
