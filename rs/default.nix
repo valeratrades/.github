@@ -110,7 +110,7 @@ let
 
   # Package versions - update these when bumping
   # Use partial semver (major.minor) for tools where patch updates are safe
-  traceyVersion = "1.0";
+  traceyVersion = "1.3";
   codestyleVersion = "0.2";
 
   # codestyle installed via binstall (same as tracey)

@@ -14,7 +14,7 @@ See individual component descriptions in their respective directories.'';
 
       # Version constants for bundled packages - update these when bumping
       # Use partial semver (major.minor) - patch versions auto-resolve via cargo-binstall
-      traceyVersion = "1.0";
+      traceyVersion = "1.3";
       codestyleVersion = "0.2";
 
       parts = {

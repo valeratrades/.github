@@ -229,10 +229,11 @@ let
   allLabels = (if useDefaults then defaultLabels else []) ++ extraLabels;
 
   # Generate label args for git commands
-  # Need to escape for bash eval: escaped double quotes for nesting inside eval "..."
-  escapeForEval = s: builtins.replaceStrings ["\"" "\\" "$" "`"] ["\\\"" "\\\\" "\\$" "\\`"] s;
+  # These are interpolated directly into a bash script (no eval), so we just need to escape
+  # single quotes for the bash 'literal string' context.
+  escapeForBash = s: builtins.replaceStrings ["'"] ["'\\''"] s;
   labelArgs = builtins.concatStringsSep " " (
-    map (l: ''-l \"'' + escapeForEval l.name + ":" + l.color + ":" + escapeForEval (l.description or "") + ''\"'') allLabels
+    map (l: "-l '" + escapeForBash l.name + ":" + l.color + ":" + escapeForBash (l.description or "") + "'") allLabels
   );
 
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
