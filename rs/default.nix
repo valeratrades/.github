@@ -108,11 +108,6 @@ let
   buildEnable = build.enable or true;
   workspace = build.workspace or { "./" = [ "git_version" "log_directives" ]; };
 
-  # Package versions - update these when bumping
-  # Use partial semver (major.minor) for tools where patch updates are safe
-  traceyVersion = "1.3";
-  codestyleVersion = "0.2";
-
   # codestyle installed via binstall (same as tracey)
   # Building from source fails in nix sandbox due to TMPDIR issues during cargo build
 
@@ -156,13 +151,16 @@ let
 
   # binstall hook - installs/upgrades tracey via cargo-binstall at shell entry
   # Uses ~/.cargo/bin as install location
-  # Queries crates.io for latest version matching semver prefix, installs if different from local
+  # Queries crates.io for the latest version, installs if different from local
   # Note: codestyle is installed lazily at pre-commit time, not here
+  latestCrateVersion = name: ''
+    curl -sf "https://crates.io/api/v1/crates/${name}" 2>/dev/null | grep -o '"newest_version":"[^"]*"' | head -1 | cut -d'"' -f4
+  '';
   binstallHook = ''
     export PATH="$HOME/.cargo/bin:$PATH"
   '' + (if tracey then ''
     _tracey_installed=$(cargo install --list 2>/dev/null | grep "^tracey v" | grep -oP '\d+\.\d+\.\d+' || echo "")
-    _tracey_latest=$(curl -s "https://crates.io/api/v1/crates/tracey/versions" | grep -oP '"num":"${traceyVersion}\.[^"]*"' | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "")
+    _tracey_latest=$(${latestCrateVersion "tracey"})
     if [ -n "$_tracey_latest" ] && [ "$_tracey_installed" != "$_tracey_latest" ]; then
       echo "Installing tracey@$_tracey_latest..."
       cargo binstall "tracey@$_tracey_latest" --no-confirm -q 2>/dev/null || cargo install "tracey@$_tracey_latest" -q
@@ -172,7 +170,7 @@ let
   # Lazy install hook for codestyle - called from pre-commit, not shell entry
   codestyleLazyInstall = if styleEnabled then ''
     _codestyle_installed=$(codestyle --version 2>/dev/null | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "")
-    _codestyle_latest=$(curl -s "https://crates.io/api/v1/crates/codestyle/versions" | grep -oP '"num":"${codestyleVersion}\.[^"]*"' | head -1 | grep -oP '\d+\.\d+\.\d+' || echo "")
+    _codestyle_latest=$(${latestCrateVersion "codestyle"})
     if [ -n "$_codestyle_latest" ] && [ "$_codestyle_installed" != "$_codestyle_latest" ]; then
       echo "Installing codestyle@$_codestyle_latest..."
       cargo binstall "codestyle@$_codestyle_latest" --no-confirm -q 2>/dev/null || cargo install "codestyle@$_codestyle_latest" -q
