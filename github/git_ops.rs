@@ -12,12 +12,10 @@ serde_json = "1"
 ---
 
 use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use std::collections::HashMap;
-use std::collections::hash_map::DefaultHasher;
 use std::fs;
-use std::hash::{Hash, Hasher};
-use std::io::{self, BufRead, IsTerminal, Write};
+use std::io::{self, BufRead, IsTerminal, Write as _};
 use std::path::PathBuf;
 use std::process::Command;
 
@@ -43,7 +41,7 @@ enum Commands {
     },
 }
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Debug, Clone)]
 struct LabelSpec {
     name: String,
     color: String,
@@ -64,45 +62,44 @@ fn parse_label(s: &str) -> Result<LabelSpec, String> {
     Ok(LabelSpec { name, color, description })
 }
 
-/// Compute a stable hash of the label configuration
-fn compute_labels_hash(labels: &[LabelSpec]) -> u64 {
+/// Compute a stable, deterministic fingerprint of the label configuration.
+/// Produces a simple canonical string that won't change across Rust versions.
+fn compute_labels_fingerprint(labels: &[LabelSpec]) -> String {
     let mut sorted: Vec<_> = labels.iter().collect();
     sorted.sort_by(|a, b| a.name.cmp(&b.name));
-    let mut hasher = DefaultHasher::new();
+    let mut out = String::new();
     for label in sorted {
-        label.hash(&mut hasher);
+        out.push_str(&label.name);
+        out.push('\0');
+        out.push_str(&label.color);
+        out.push('\0');
+        out.push_str(label.description.as_deref().unwrap_or(""));
+        out.push('\n');
     }
-    hasher.finish()
+    out
 }
 
-#[derive(Debug, Serialize, Deserialize, Default)]
-struct SyncState {
-    /// Map from absolute repo path to hash of synced labels
-    synced: HashMap<String, u64>,
-}
-
-fn state_file_path() -> PathBuf {
+/// Per-repo state file: ~/.local/state/git_ops/labels/<hex-encoded-repo-path>
+fn state_file_for_repo(repo_root: &str) -> PathBuf {
     let state_dir = dirs::state_dir()
         .expect("XDG_STATE_HOME not available")
-        .join("git_ops");
-    state_dir.join("sync_labels.json")
+        .join("git_ops")
+        .join("labels");
+    // Simple hex encoding of repo path to get a safe filename
+    let hex: String = repo_root.bytes().map(|b| format!("{:02x}", b)).collect();
+    state_dir.join(hex)
 }
 
-fn load_sync_state() -> SyncState {
-    let path = state_file_path();
-    match fs::read_to_string(&path) {
-        Ok(content) => serde_json::from_str(&content).unwrap_or_default(),
-        Err(_) => SyncState::default(),
-    }
+fn load_saved_fingerprint(repo_root: &str) -> Option<String> {
+    fs::read_to_string(state_file_for_repo(repo_root)).ok()
 }
 
-fn save_sync_state(state: &SyncState) {
-    let path = state_file_path();
+fn save_fingerprint(repo_root: &str, fingerprint: &str) {
+    let path = state_file_for_repo(repo_root);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent).expect("failed to create state directory");
     }
-    let content = serde_json::to_string_pretty(state).expect("failed to serialize state");
-    fs::write(&path, content).expect("failed to write state file");
+    fs::write(&path, fingerprint).expect("failed to write state file");
 }
 
 fn get_repo_root() -> Option<String> {
@@ -289,12 +286,10 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
     }
 
     // Check if we've already synced this exact label configuration for this repo
-    let current_hash = compute_labels_hash(&local_labels);
+    let fingerprint = compute_labels_fingerprint(&local_labels);
     let repo_root = get_repo_root().expect("not in a git repository");
-    let mut state = load_sync_state();
 
-    if state.synced.get(&repo_root) == Some(&current_hash) {
-        // Already synced this configuration, nothing to do
+    if load_saved_fingerprint(&repo_root).as_ref() == Some(&fingerprint) {
         return;
     }
 
@@ -331,7 +326,10 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
             }
             Some((remote_color, remote_desc)) => {
                 let color_differs = remote_color.to_lowercase() != color.to_lowercase();
-                let desc_differs = remote_desc != description;
+                // Normalize: treat Some("") same as None
+                let rd = remote_desc.as_deref().filter(|s| !s.is_empty());
+                let ld = description.as_deref().filter(|s| !s.is_empty());
+                let desc_differs = rd != ld;
                 if color_differs || desc_differs {
                     if update_label(name, color, description.as_deref()) {
                         updated += 1;
@@ -366,9 +364,7 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
         }
     }
 
-    // Update cache with current hash
-    state.synced.insert(repo_root, current_hash);
-    save_sync_state(&state);
+    save_fingerprint(&repo_root, &fingerprint);
 
     // Only print summary if there were actual changes
     if created > 0 || updated > 0 || deleted > 0 {
