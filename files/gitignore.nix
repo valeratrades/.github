@@ -1,4 +1,4 @@
-{ pkgs, langs }: 
+{ pkgs, langs, extra ? "" }:
 let
   gitignore = {
     shared = pkgs.runCommand "shared-gitignore" {} ''cat ${./gitignore/.gitignore} > $out'';
@@ -6,9 +6,10 @@ let
     go = pkgs.runCommand "go-gitignore" {} ''cat ${./gitignore/go.gitignore} > $out'';
     py = pkgs.runCommand "py-gitignore" {} ''cat ${./gitignore/py.gitignore} > $out'';
   };
+  extraSection = if extra != "" then "\n\necho '${extra}'" else "";
 in
   pkgs.runCommand "combined-gitignore" {} ''
     {
-      ${builtins.concatStringsSep "\n\n\n" (map (lang: "cat ${gitignore.${lang}}") (["shared"] ++ langs))}
+      ${builtins.concatStringsSep "\n\n\n" (map (lang: "cat ${gitignore.${lang}}") (["shared"] ++ langs))}${extraSection}
     } > $out
   ''

@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], labels ? {}, preCommit ? {},
+args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, jobs ? {}, hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", langs ? ["rs"], gitignore ? {}, labels ? {}, preCommit ? {},
   # Pass the rs module output to inherit style/tracey settings automatically
   rs ? null,
   # Or override individually (these take precedence over rs)
@@ -55,6 +55,7 @@ github = v-utils.github {
   inherit pkgs pname rs;  # Pass rs to inherit style/tracey settings
   lastSupportedVersion = "nightly-1.86";
   langs = [ "rs" ];  # For gitignore generation
+  gitignore.extra = "_scripts/node_modules";  # Appended to generated .gitignore
 
   # Top-level install applies to all sections (errors, warnings, other, release)
   # Per-section install overrides this.
@@ -271,7 +272,7 @@ in
   shellHook = ''
     ${workflows.shellHook}
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
-    cp -f ${(files.gitignore { inherit pkgs; inherit langs;})} ./.gitignore
+    cp -f ${(files.gitignore { inherit pkgs; inherit langs; extra = gitignore.extra or "";})} ./.gitignore
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
   '';
