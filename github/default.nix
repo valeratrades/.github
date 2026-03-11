@@ -7,6 +7,7 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   # Per-section install overrides this.
   install ? {},
   release ? null, gitlabSync ? null,
+  excalidraw ? null,
 }:
 
 # Priority: explicit params > rs module > defaults
@@ -110,6 +111,16 @@ github = v-utils.github {
   # GitLab mirror sync (triggers on any push)
   gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; };
   # Repo name appended from GitHub context. Requires GITLAB_TOKEN secret
+
+  # Excalidraw tools (ex, ex-to-md, md-to-ex)
+  # Keys are file paths relative to project root.
+  excalidraw = {
+    "docs/arch.excalidraw" = {
+      standalone = true;  # ex-to-md writes to docs/arch.md
+      # OR
+      inline = { fpath = "docs/ARCHITECTURE.md"; num = 1; };  # Replace Nth mermaid block in file
+    };
+  };
 };
 ```
 
@@ -129,6 +140,7 @@ The shellHook will:
 enabledPackages includes:
 - `git_ops` - GitHub operations (sync-labels, etc.)
 - `code_duplication` - Run the same duplication detection used in CI locally (requires qlty)
+- `ex`, `ex-to-md`, `md-to-ex` - Excalidraw tools (when excalidraw is configured)
 '';
 } else
 
@@ -240,6 +252,10 @@ let
   git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
   code_duplication = import ./code_duplication.nix { inherit pkgs; script = ./workflows/code-duplication.rs; };
 
+  excalidrawModule = if excalidraw != null then
+    import ./excalidraw { inherit pkgs; entries = excalidraw; }
+  else null;
+
   # Process preCommit config
   # can be very slow
   semverChecks = preCommit.semverChecks or false;
@@ -275,7 +291,10 @@ in
     cp -f ${(files.gitignore { inherit pkgs; inherit langs; extra = gitignore.extra or "";})} ./.gitignore
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
+    ${if excalidrawModule != null then excalidrawModule.shellHook else ""}
   '';
 
-  enabledPackages = [ git_ops code_duplication pkgs.treefmt ] ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else []); #Q: not sure if this is the right place to bring in `treefmt`. But git-hooks seems to have had seized managing it correctly, so keep it here for now.
+  enabledPackages = [ git_ops code_duplication pkgs.treefmt ]
+    ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else [])
+    ++ (if excalidrawModule != null then excalidrawModule.enabledPackages else []); #Q: not sure if this is the right place to bring in `treefmt`. But git-hooks seems to have had seized managing it correctly, so keep it here for now.
 }
