@@ -128,29 +128,8 @@ let
 
   exCmd = pkgs.writeShellScriptBin "ex" ''
     set -euo pipefail
-    if [[ $# -lt 1 ]]; then
-      echo "Usage: ex <path.excalidraw> [-b|--browser <cmd>]" >&2
-      exit 1
-    fi
-    FILE="$1"
-    shift
-    BROWSER=""
-    while [[ $# -gt 0 ]]; do
-      case "$1" in
-        -b|--browser) BROWSER="$2"; shift 2 ;;
-        *) shift ;;
-      esac
-    done
     export EX_HTML_PATH="${excalidrawAppHtml}"
-    cargo -Zscript -q ${excalidrawServerScript} "$FILE" &
-    SERVER_PID=$!
-    sleep 0.5
-    if [[ -n "$BROWSER" ]]; then
-      "$BROWSER" "http://localhost:3741"
-    else
-      ${pkgs.xdg-utils}/bin/xdg-open "http://localhost:3741"
-    fi
-    wait $SERVER_PID
+    exec cargo -Zscript -q ${excalidrawServerScript} "$@"
   '';
 
   exToMdCmd = pkgs.writeShellScriptBin "ex-to-md" ''
@@ -170,5 +149,5 @@ let
 in
 {
   shellHook = npmCacheSetup;
-  enabledPackages = [ pkgs.nodejs pkgs.xdg-utils exCmd exToMdCmd mdToExCmd ];
+  enabledPackages = [ pkgs.nodejs exCmd exToMdCmd mdToExCmd ];
 }

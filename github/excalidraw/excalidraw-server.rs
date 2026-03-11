@@ -5,13 +5,9 @@
 edition = "2024"
 
 [dependencies]
+clap = { version = "4", features = ["derive"] }
 serde_json = "1"
 ---
-
-//! Excalidraw editor server.
-//!
-//! Usage: excalidraw-server <path.excalidraw>
-//! Requires EX_HTML_PATH env var pointing to excalidraw-app.html.
 
 use std::{
 	env,
@@ -19,7 +15,7 @@ use std::{
 	io::{BufRead, BufReader, Write},
 	net::TcpListener,
 	path::PathBuf,
-	process::ExitCode,
+	process::{Command, ExitCode},
 	sync::{
 		Arc,
 		atomic::{AtomicU64, Ordering},
@@ -27,18 +23,29 @@ use std::{
 	time::{SystemTime, UNIX_EPOCH},
 };
 
+use clap::Parser;
+
 const PORT: u16 = 3741;
 const HEARTBEAT_TIMEOUT_MS: u64 = 8000;
+
+#[derive(Parser)]
+#[command(name = "ex", bin_name = "ex", about = "Open an .excalidraw file in the browser editor")]
+struct Cli {
+	/// Path to the .excalidraw file
+	file: PathBuf,
+
+	/// Browser command to use (default: xdg-open)
+	#[arg(short, long)]
+	browser: Option<String>,
+}
 
 fn now_ms() -> u64 {
 	SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_millis() as u64
 }
 
 fn main() -> ExitCode {
-	let file_path = PathBuf::from(env::args().nth(1).unwrap_or_else(|| {
-		eprintln!("Usage: excalidraw-server <path.excalidraw>");
-		std::process::exit(1);
-	}));
+	let cli = Cli::parse();
+	let file_path = &cli.file;
 
 	let name = file_path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_else(|| "excalidraw".to_string());
 
@@ -68,6 +75,19 @@ fn main() -> ExitCode {
 	eprintln!("Excalidraw ready: http://localhost:{PORT}");
 	eprintln!("Editing: {}", file_path.display());
 	eprintln!("Alt+W to save. Ctrl+C to stop.");
+
+	let url = format!("http://localhost:{PORT}");
+	let browser_cmd = cli.browser.clone();
+	std::thread::spawn(move || {
+		std::thread::sleep(std::time::Duration::from_millis(500));
+		let status = match &browser_cmd {
+			Some(cmd) => Command::new(cmd).arg(&url).status(),
+			None => Command::new("xdg-open").arg(&url).status(),
+		};
+		if let Err(e) = status {
+			eprintln!("Failed to open browser: {e}");
+		}
+	});
 
 	let hb = Arc::clone(&last_heartbeat);
 	std::thread::spawn(move || loop {
@@ -122,7 +142,7 @@ fn main() -> ExitCode {
 				last_heartbeat.store(now_ms(), Ordering::Relaxed);
 				let _ = write!(stream, "HTTP/1.1 204 No Content\r\n{cors}\r\n\r\n");
 			}
-			("GET", "/api/load") => match fs::read_to_string(&file_path) {
+			("GET", "/api/load") => match fs::read_to_string(file_path) {
 				Ok(content) => {
 					let len = content.len();
 					let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len}\r\n{cors}\r\n\r\n{content}");
@@ -140,7 +160,7 @@ fn main() -> ExitCode {
 					match serde_json::from_str::<serde_json::Value>(&body_str) {
 						Ok(parsed) => {
 							let pretty = serde_json::to_string_pretty(&parsed).unwrap();
-							if let Err(e) = fs::write(&file_path, &pretty) {
+							if let Err(e) = fs::write(file_path, &pretty) {
 								let err_body = format!("{{\"error\":\"{e}\"}}");
 								let len = err_body.len();
 								let _ = write!(stream, "HTTP/1.1 500 Internal Server Error\r\nContent-Type: application/json\r\nContent-Length: {len}\r\n{cors}\r\n\r\n{err_body}");
