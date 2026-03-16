@@ -31,6 +31,7 @@ See individual component descriptions in their respective directories.'';
 
         github = (import ./github) {
           inherit pkgs pname;
+          enable = true;
           langs = [];
           labels.extra = [];
         };

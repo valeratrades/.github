@@ -9,6 +9,9 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   release ? null, gitlabSync ? null,
   excalidraw ? null,
   syncFork ? false,
+  # Master switch: enables CI workflows, pre-commit hooks, gitignore, label sync, git_ops, etc.
+  # When false (default), only explicitly requested standalone workflows (syncFork, gitlabSync, release) are generated.
+  enable ? false,
 }:
 
 # Priority: explicit params > rs module > defaults
@@ -54,6 +57,7 @@ GitHub integration module combining workflows, git hooks, and related tooling.
 Usage:
 ```nix
 github = v-utils.github {
+  enable = true;  # Enable CI workflows, pre-commit hooks, gitignore, label sync
   inherit pkgs pname rs;  # Pass rs to inherit style/tracey settings
   lastSupportedVersion = "nightly-1.86";
   langs = [ "rs" ];  # For gitignore generation
@@ -235,17 +239,24 @@ let
   # sync_fork: can be set via jobs.sync_fork or top-level syncFork param
   effectiveSyncFork = syncFork || (jobs.sync_fork or false);
 
-  workflows = import ./workflows/nix-parts {
-    inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release gitlabSync;
-    inherit installErrors installWarnings installOther;
+  workflows = import ./workflows/nix-parts ({
+    inherit pkgs gistId;
     syncFork = effectiveSyncFork;
-  };
+  } // (if enable then {
+    inherit lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre release gitlabSync;
+    inherit installErrors installWarnings installOther;
+  } else {
+    jobsErrors = [];
+    jobsWarnings = [];
+  }));
+
+  # --- Everything below is only computed when `enable = true` ---
 
   # Process labels config (accepts both `default` and `defaults`)
   defaultLabels = import ./labels.nix;
   labelsConfigRaw = if builtins.isAttrs labels then labels else { extra = labels; };
   labelsConfig = utils.optionalDefaults labelsConfigRaw;
-  labelsEnabled = labelsConfig.enable or true;
+  labelsEnabled = enable && (labelsConfig.enable or true);
   useDefaults = labelsConfig.default or true;
   extraLabels = labelsConfig.extra or [];
   allLabels = (if useDefaults then defaultLabels else []) ++ extraLabels;
@@ -292,20 +303,22 @@ in
   appendCustom = ./append_custom.rs;
   preCommit = import ./pre_commit.nix;
 
-  inherit git_ops code_duplication labelSyncHook;
+  inherit labelSyncHook;
 
   shellHook = ''
     ${workflows.shellHook}
-    ${if pname != null then ''
+    ${if enable then ''
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs; extra = gitignore.extra or "";})} ./.gitignore
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
-    '' else ""}
     ${labelSyncHook}
     ${if excalidrawModule != null then excalidrawModule.shellHook else ""}
+    '' else ""}
   '';
 
-  enabledPackages = [ git_ops code_duplication pkgs.treefmt ]
+  enabledPackages = if enable then
+    [ git_ops code_duplication pkgs.treefmt ]
     ++ (if semverChecks then [ pkgs.cargo-semver-checks ] else [])
-    ++ (if excalidrawModule != null then excalidrawModule.enabledPackages else []); #Q: not sure if this is the right place to bring in `treefmt`. But git-hooks seems to have had seized managing it correctly, so keep it here for now.
-}
+    ++ (if excalidrawModule != null then excalidrawModule.enabledPackages else [])
+  else [];
+} // (if enable then { inherit git_ops code_duplication; } else {})
