@@ -1,4 +1,4 @@
-args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, gitlabSync ? null,
+args@{ pkgs ? null, nixpkgs ? null, lastSupportedVersion ? null, jobsErrors, jobsWarnings, jobsOther ? [], hookPre ? {}, gistId ? "b48e6f02c61942200e7d1e3eeabf9bcb", release ? null, gitlabSync ? null, syncFork ? false,
   # Per-section install dependencies: { packages = [ "pkg1" ]; apt = [ "pkg2" ]; }
   installErrors ? {}, installWarnings ? {}, installOther ? {},
 }:
@@ -246,6 +246,13 @@ let
     ) spec.workflows
   else {};
 
+  # Sync fork workflow (rebase over upstream)
+  syncForkWorkflow = if syncFork then
+    let
+      syncSpec = import ./shared/sync-fork.nix;
+    in (pkgs.formats.yaml { }).generate "" (builtins.removeAttrs syncSpec [ "standalone" ])
+  else null;
+
   # GitLab sync workflow (triggers on any push)
   stripTrailingSlash = s:
     let len = builtins.stringLength s;
@@ -342,6 +349,10 @@ let
     ''
   else "";
 
+  syncForkHook = if syncForkWorkflow != null then ''
+    cp -f ${syncForkWorkflow} ./.github/workflows/sync_fork.yml
+  '' else "";
+
   gitlabSyncHook = if gitlabSyncWorkflow != null then ''
     cp -f ${gitlabSyncWorkflow} ./.github/workflows/sync_gitlab.yml
   '' else "";
@@ -357,7 +368,7 @@ let
   '' else "";
 in
 workflows // {
-  inherit releaseWorkflows gitlabSyncWorkflow;
+  inherit releaseWorkflows gitlabSyncWorkflow syncForkWorkflow;
   shellHook = ''
     mkdir -p ./.github/workflows
     ${errorsHook}
@@ -365,6 +376,7 @@ workflows // {
     ${otherHook}
     ${releaseHook}
     ${releaseStaleWarningHook}
+    ${syncForkHook}
     ${gitlabSyncHook}
   '';
 }

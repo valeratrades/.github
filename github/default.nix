@@ -8,6 +8,7 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   install ? {},
   release ? null, gitlabSync ? null,
   excalidraw ? null,
+  syncFork ? false,
 }:
 
 # Priority: explicit params > rs module > defaults
@@ -107,6 +108,10 @@ github = v-utils.github {
     trigger = [ "tag" "release_branch" ];
     branch = "release";  # Branch for release_branch trigger (default: "release")
   };
+
+  # Sync fork over upstream via rebase (daily schedule + manual trigger)
+  # Can also be set via jobs.sync_fork = true;
+  syncFork = true;
 
   # GitLab mirror sync (triggers on any push)
   gitlabSync = { mirrorBaseUrl = "https://gitlab.com/user"; };
@@ -212,7 +217,7 @@ let
 
   # Get top-level default setting (accepts both `default` and `defaults`)
   jobsNormalized = utils.optionalDefaults jobs;
-  topDefault = jobsNormalized.default;
+  topDefault = jobsNormalized.default or false;
 
   # Process each section
   jobsErrors = processJobsSection "errors" (jobs.errors or {}) topDefault;
@@ -227,9 +232,13 @@ let
   installWarnings = effectiveInstall (jobs.warnings or {});
   installOther = effectiveInstall (jobs.other or {});
 
+  # sync_fork: can be set via jobs.sync_fork or top-level syncFork param
+  effectiveSyncFork = syncFork || (jobs.sync_fork or false);
+
   workflows = import ./workflows/nix-parts {
     inherit pkgs lastSupportedVersion jobsErrors jobsWarnings jobsOther hookPre gistId release gitlabSync;
     inherit installErrors installWarnings installOther;
+    syncFork = effectiveSyncFork;
   };
 
   # Process labels config (accepts both `default` and `defaults`)
@@ -287,9 +296,11 @@ in
 
   shellHook = ''
     ${workflows.shellHook}
+    ${if pname != null then ''
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs; extra = gitignore.extra or "";})} ./.gitignore
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
+    '' else ""}
     ${labelSyncHook}
     ${if excalidrawModule != null then excalidrawModule.shellHook else ""}
   '';
