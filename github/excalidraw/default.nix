@@ -4,6 +4,11 @@ let
   excalidrawServerScript = ./excalidraw-server.rs;
   exToMdScript = ./ex-to-md.rs;
 
+  bundledLibraries = [
+    ./libraries/UML-ER-library.excalidrawlib
+  ];
+  libraryArgs = builtins.concatStringsSep " " (map (lib: "--library ${lib}") bundledLibraries);
+
   mdToExScript = pkgs.writeText "md-to-ex.mjs" ''
     import { readFileSync, writeFileSync } from 'fs';
     import { join } from 'path';
@@ -129,7 +134,7 @@ let
   exCmd = pkgs.writeShellScriptBin "ex" ''
     set -euo pipefail
     export EX_HTML_PATH="${excalidrawAppHtml}"
-    exec cargo -Zscript -q ${excalidrawServerScript} "$@"
+    exec cargo -Zscript -q ${excalidrawServerScript} ${libraryArgs} "$@"
   '';
 
   exToMdCmd = pkgs.writeShellScriptBin "ex-to-md" ''

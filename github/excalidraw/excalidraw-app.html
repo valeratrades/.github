@@ -102,7 +102,35 @@
               appState: data.appState || {},
               files: data.files || {}
             },
-            excalidrawAPI: function(api) { excalidrawAPI = api; }
+            excalidrawAPI: function(api) {
+              excalidrawAPI = api;
+              fetch('/api/libraries')
+                .then(function(r) { return r.json(); })
+                .then(function(libs) {
+                  if (!libs || !libs.length) return;
+                  var items = [];
+                  libs.forEach(function(lib) {
+                    // v2 format: lib.libraryItems is array of {id, status, elements, ...}
+                    if (lib.libraryItems) {
+                      lib.libraryItems.forEach(function(item) { items.push(item); });
+                    }
+                    // v1 format: lib.library is array of element-arrays
+                    if (lib.library) {
+                      lib.library.forEach(function(elements, i) {
+                        items.push({
+                          id: lib.source + '_' + i,
+                          status: 'published',
+                          elements: elements,
+                          created: 1
+                        });
+                      });
+                    }
+                  });
+                  if (items.length) {
+                    api.updateLibrary({ libraryItems: items, merge: true });
+                  }
+                });
+            }
           }),
           document.getElementById('root')
         );

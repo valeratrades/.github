@@ -37,6 +37,10 @@ struct Cli {
 	/// Browser command to use (default: xdg-open)
 	#[arg(short, long)]
 	browser: Option<String>,
+
+	/// Paths to .excalidrawlib library files to pre-load
+	#[arg(short, long)]
+	library: Vec<PathBuf>,
 }
 
 fn now_ms() -> u64 {
@@ -64,6 +68,23 @@ fn main() -> ExitCode {
 		std::process::exit(1);
 	});
 	let html = html_template.replace("arch -- Excalidraw", &format!("{name} -- Excalidraw"));
+
+	// Merge all library files into a single JSON array of .excalidrawlib objects
+	let libraries_json = if cli.library.is_empty() {
+		"[]".to_string()
+	} else {
+		let libs: Vec<serde_json::Value> = cli.library.iter().map(|p| {
+			let content = fs::read_to_string(p).unwrap_or_else(|e| {
+				eprintln!("Failed to read library {}: {e}", p.display());
+				std::process::exit(1);
+			});
+			serde_json::from_str(&content).unwrap_or_else(|e| {
+				eprintln!("Failed to parse library {}: {e}", p.display());
+				std::process::exit(1);
+			})
+		}).collect();
+		serde_json::to_string(&libs).unwrap()
+	};
 
 	let last_heartbeat = Arc::new(AtomicU64::new(now_ms()));
 
@@ -141,6 +162,10 @@ fn main() -> ExitCode {
 			("POST", "/api/heartbeat") => {
 				last_heartbeat.store(now_ms(), Ordering::Relaxed);
 				let _ = write!(stream, "HTTP/1.1 204 No Content\r\n{cors}\r\n\r\n");
+			}
+			("GET", "/api/libraries") => {
+				let len = libraries_json.len();
+				let _ = write!(stream, "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {len}\r\n{cors}\r\n\r\n{libraries_json}");
 			}
 			("GET", "/api/load") => match fs::read_to_string(file_path) {
 				Ok(content) => {
