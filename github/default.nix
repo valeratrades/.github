@@ -12,6 +12,8 @@ args@{ pkgs ? null, nixpkgs ? null, pname ? null, lastSupportedVersion ? null, j
   # Master switch: enables CI workflows, pre-commit hooks, gitignore, label sync, git_ops, etc.
   # When false (default), only explicitly requested standalone workflows (syncFork, gitlabSync, release) are generated.
   enable ? false,
+  # Rust toolchain package — required when enable = true (for cargo -Zscript tools like git_ops)
+  rust ? null,
 }:
 
 # Priority: explicit params > rs module > defaults
@@ -58,7 +60,7 @@ Usage:
 ```nix
 github = v-utils.github {
   enable = true;  # Enable CI workflows, pre-commit hooks, gitignore, label sync
-  inherit pkgs pname rs;  # Pass rs to inherit style/tracey settings
+  inherit pkgs pname rust rs;  # rust required when enable = true (for cargo -Zscript tools)
   lastSupportedVersion = "nightly-1.86";
   langs = [ "rs" ];  # For gitignore generation
   gitignore.extra = "_scripts/node_modules";  # Appended to generated .gitignore
@@ -307,13 +309,16 @@ in
 
   shellHook = ''
     ${workflows.shellHook}
-    ${if enable then ''
+    ${if enable then
+    (if rust == null then abort "github { enable = true; } requires `rust` — pass your rust toolchain package" else ''
+    export PATH="${rust}/bin:$PATH"
     cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs; extra = gitignore.extra or "";})} ./.gitignore
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
     ${if excalidrawModule != null then excalidrawModule.shellHook else ""}
-    '' else ""}
+    '')
+    else ""}
   '';
 
   enabledPackages = if enable then
