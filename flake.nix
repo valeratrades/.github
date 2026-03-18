@@ -29,7 +29,7 @@ See individual component descriptions in their respective directories.'';
         utils = import ./utils;
         files = import ./files;
 
-        #TODO: pass `rust` (combined toolchain) once this repo has a fenix/rust-overlay input
+        #TODO: pass `rs` once this repo has a rust-overlay input
         github = (import ./github) {
           inherit pkgs pname;
           langs = [];

@@ -178,7 +178,7 @@ let
   '' else "";
 in
 {
-  inherit rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags codestyleLazyInstall;
+  inherit rust rustfmtFile configFile denyFile styleFormat styleAssert moduleFlags codestyleLazyInstall;
 
   # For backwards compatibility, expose the first build file
   buildFile = makeBuildFile (workspace.${builtins.head workspaceDirs});

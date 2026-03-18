@@ -133,6 +133,33 @@ let
 
   exCmd = pkgs.writeShellScriptBin "ex" ''
     set -euo pipefail
+    if [ "''${1:-}" = "new" ]; then
+      shift
+      [ $# -eq 0 ] && { echo "Usage: ex new <path>" >&2; exit 1; }
+      target="$1"
+      [[ "$target" != *.excalidraw ]] && target="$target.excalidraw"
+      if [ -e "$target" ]; then
+        echo "Already exists: $target" >&2
+        exit 1
+      fi
+      mkdir -p "$(dirname "$target")"
+      cat > "$target" << 'EXEOF'
+    {
+      "type": "excalidraw",
+      "version": 2,
+      "source": "ex-new",
+      "elements": [],
+      "appState": {
+        "gridSize": null,
+        "gridStep": 5,
+        "viewBackgroundColor": "#ffffff"
+      },
+      "files": {}
+    }
+    EXEOF
+      echo "Created: $target"
+      exit 0
+    fi
     export EX_HTML_PATH="${excalidrawAppHtml}"
     exec cargo -Zscript -q ${excalidrawServerScript} ${libraryArgs} "$@"
   '';
