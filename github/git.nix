@@ -1,8 +1,8 @@
-{ pkgs, labelArgs, gitOpsScript }:
+{ pkgs, labelArgs, cargoNightly, gitOpsScript }:
 pkgs.writeShellScriptBin "git_ops" ''
   if [ "$1" = "sync-labels" ]; then
-    exec cargo -Zscript -q ${gitOpsScript} "$@" ${labelArgs}
+    exec ${cargoNightly} -Zscript -q ${gitOpsScript} "$@" ${labelArgs}
   else
-    exec cargo -Zscript -q ${gitOpsScript} "$@"
+    exec ${cargoNightly} -Zscript -q ${gitOpsScript} "$@"
   fi
 ''

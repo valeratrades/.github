@@ -271,8 +271,18 @@ let
     map (l: "-l '" + escapeForBash l.name + ":" + l.color + ":" + escapeForBash (l.description or "") + "'") allLabels
   );
 
-  git_ops = import ./git.nix { inherit pkgs labelArgs; gitOpsScript = ./git_ops.rs; };
-  code_duplication = import ./code_duplication.nix { inherit pkgs; script = ./workflows/code-duplication.rs; };
+  # Prefer rustup's nightly cargo (bypasses nix-shell sccache) with fallback to local cargo.
+  # This is a script that execs cargo with all passed arguments.
+  cargoNightly = pkgs.writeShellScript "cargo-nightly" ''
+    if command -v rustup &>/dev/null; then
+      exec rustup run nightly cargo "$@"
+    else
+      exec cargo "$@"
+    fi
+  '';
+
+  git_ops = import ./git.nix { inherit pkgs labelArgs cargoNightly; gitOpsScript = ./git_ops.rs; };
+  code_duplication = import ./code_duplication.nix { inherit pkgs cargoNightly; script = ./workflows/code-duplication.rs; };
 
   excalidrawModule = if excalidraw != null then
     import ./excalidraw { inherit pkgs; entries = excalidraw; }
@@ -302,7 +312,7 @@ in
     ${if enable then
     (if rust == null then abort "github { enable = true; } requires `rust` — pass your rust toolchain package" else ''
     export PATH="${rust}/bin:$PATH"
-    cargo -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
+    ${cargoNightly} -Zscript -q ${./append_custom.rs} ./.git/hooks/pre-commit
     cp -f ${(files.gitignore { inherit pkgs; inherit langs; extra = gitignore.extra or "";})} ./.gitignore
     cp -f ${(import ./pre_commit.nix) { inherit pkgs pname semverChecks; traceyCheck = actualTraceyCheck; styleFormat = actualStyleFormat; styleAssert = actualStyleAssert; moduleFlags = actualModuleFlags; codestyleLazyInstall = rsCodestyleLazyInstall; }} ./.git/hooks/custom.sh
     ${labelSyncHook}
