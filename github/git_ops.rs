@@ -276,6 +276,52 @@ fn check_duplicate_colors(labels: &[LabelSpec]) -> Result<(), String> {
     Ok(())
 }
 
+fn report_mismatches(local_map: &HashMap<String, (String, Option<String>)>, remote_map: &HashMap<String, (String, Option<String>)>) {
+    let mut lines = Vec::new();
+
+    // Labels we want but remote doesn't have
+    for (name, (color, desc)) in local_map {
+        if !remote_map.contains_key(name) {
+            lines.push(format!("  + {} (#{}, {:?}) — not on remote", name, color, desc.as_deref().unwrap_or("")));
+        }
+    }
+
+    // Labels where remote differs from what we want
+    for (name, (color, description)) in local_map {
+        if let Some((remote_color, remote_desc)) = remote_map.get(name) {
+            let color_differs = remote_color.to_lowercase() != color.to_lowercase();
+            let rd = remote_desc.as_deref().filter(|s| !s.is_empty());
+            let ld = description.as_deref().filter(|s| !s.is_empty());
+            let desc_differs = rd != ld;
+            if color_differs || desc_differs {
+                let mut diffs = Vec::new();
+                if color_differs {
+                    diffs.push(format!("color: #{} -> #{}", remote_color, color));
+                }
+                if desc_differs {
+                    diffs.push(format!("desc: {:?} -> {:?}", rd.unwrap_or(""), ld.unwrap_or("")));
+                }
+                lines.push(format!("  ~ {} ({})", name, diffs.join(", ")));
+            }
+        }
+    }
+
+    // Labels on remote that we don't manage
+    for name in remote_map.keys() {
+        if !local_map.contains_key(name) {
+            lines.push(format!("  ? {} — on remote but not in config", name));
+        }
+    }
+
+    if !lines.is_empty() {
+        lines.sort();
+        eprintln!("label-sync: config drift detected:");
+        for line in &lines {
+            eprintln!("{}", line);
+        }
+    }
+}
+
 fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
     if check_colors {
         if let Err(e) = check_duplicate_colors(&local_labels) {
@@ -309,6 +355,8 @@ fn sync_labels(local_labels: Vec<LabelSpec>, check_colors: bool) {
         .into_iter()
         .map(|l| (l.name, (l.color, l.description)))
         .collect();
+
+    report_mismatches(&local_map, &remote_map);
 
     let mut created = 0;
     let mut updated = 0;

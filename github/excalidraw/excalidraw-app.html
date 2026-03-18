@@ -99,7 +99,7 @@
           React.createElement(Excalidraw, {
             initialData: {
               elements: data.elements || [],
-              appState: data.appState || {},
+              appState: Object.assign({ currentItemFontFamily: 3 }, data.appState || {}),
               files: data.files || {}
             },
             excalidrawAPI: function(api) {
