@@ -271,13 +271,14 @@ let
     map (l: "-l '" + escapeForBash l.name + ":" + l.color + ":" + escapeForBash (l.description or "") + "'") allLabels
   );
 
-  # Prefer rustup's nightly cargo (bypasses nix-shell sccache) with fallback to local cargo.
-  # This is a script that execs cargo with all passed arguments.
+  # Use local cargo, falling back to rustup's nightly if unavailable.
+  # Unset RUSTC_WRAPPER to bypass sccache (its temp dir may not survive backgrounding).
   cargoNightly = pkgs.writeShellScript "cargo-nightly" ''
-    if command -v rustup &>/dev/null; then
-      exec rustup run nightly cargo "$@"
-    else
+    export RUSTC_WRAPPER=
+    if command -v cargo &>/dev/null; then
       exec cargo "$@"
+    else
+      exec rustup run nightly cargo "$@"
     fi
   '';
 
