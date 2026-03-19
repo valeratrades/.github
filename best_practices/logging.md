@@ -37,5 +37,5 @@ From [matklad](<https://matklad.github.io/2024/11/23/semver-is-not-about-you.htm
 # grepping logs
 - [window](<https://github.com/matklad/window>)
 	Here is the [article on why](<https://matklad.github.io/2024/02/10/window-live-constant-time-grep.html>)
-
+	
 	I'll make a pull request to add paragraph-based filtering later, will ping you when done

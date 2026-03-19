@@ -1,4 +1,0 @@
-{
-  permissions.contents = "read";
-}
-
