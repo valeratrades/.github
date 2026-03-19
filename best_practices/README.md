@@ -1,8 +1,10 @@
 # Best Practices
 Single-truth source for coding practices adapted in my repositories
 
+Keep notes as close to strictly procedural as possible. Nobody has time to read prose. Each item should be actionable and unambiguous.
+
 ## But
-Currently everything is simply stolen from following sources:
+Currently many things are simply stolen from following sources:
 - [matklad](<https://matklad.github.io/>)
 - [boats](<https://without.boats>)
 - [adolfo](<https://ochagavia.nl/blog/>)
@@ -23,7 +25,3 @@ Currently everything is simply stolen from following sources:
 - [tmandry](<https://tmandry.gitlab.io/blog>)
 - [Jane Street](<https://blog.janestreet.com/>)
 - [LWN](<https://lwn.net/>)
-
-And possibly textbooks https://teachyourselfcs.com/, https://sourceacademy.org/sicpjs/index and so on
-
-Equally so, many things outlined are a general counsel, but within the realms of this repo many (like process_docs) could be expanded to a more concrete form to be directly linked from every one of my repositories)
