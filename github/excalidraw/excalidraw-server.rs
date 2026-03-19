@@ -25,7 +25,8 @@ use std::{
 
 use clap::Parser;
 
-const PORT: u16 = 3741;
+const PORT_BASE: u16 = 3741;
+const PORT_RETRIES: u16 = 64;
 const HEARTBEAT_TIMEOUT_MS: u64 = 8000;
 
 #[derive(Parser)]
@@ -41,6 +42,10 @@ struct Cli {
 	/// Paths to .excalidrawlib library files to pre-load
 	#[arg(short, long)]
 	library: Vec<PathBuf>,
+
+	/// Create the file if it doesn't exist
+	#[arg(short, long)]
+	touch: bool,
 }
 
 fn now_ms() -> u64 {
@@ -59,8 +64,35 @@ fn main() -> ExitCode {
 	});
 
 	if !file_path.exists() {
-		eprintln!("File not found: {}", file_path.display());
-		return ExitCode::FAILURE;
+		if !cli.touch {
+			eprintln!("File not found: {} (use -t to create)", file_path.display());
+			return ExitCode::FAILURE;
+		}
+		if let Some(parent) = file_path.parent() {
+			if !parent.as_os_str().is_empty() {
+				fs::create_dir_all(parent).unwrap_or_else(|e| {
+					eprintln!("Failed to create directory {}: {e}", parent.display());
+					std::process::exit(1);
+				});
+			}
+		}
+		let empty = r#"{
+  "type": "excalidraw",
+  "version": 2,
+  "source": "ex-new",
+  "elements": [],
+  "appState": {
+    "gridSize": null,
+    "gridStep": 5,
+    "viewBackgroundColor": "#ffffff"
+  },
+  "files": {}
+}"#;
+		fs::write(file_path, empty).unwrap_or_else(|e| {
+			eprintln!("Failed to create {}: {e}", file_path.display());
+			std::process::exit(1);
+		});
+		eprintln!("Created: {}", file_path.display());
 	}
 
 	let html_template = fs::read_to_string(&html_path).unwrap_or_else(|e| {
@@ -88,16 +120,29 @@ fn main() -> ExitCode {
 
 	let last_heartbeat = Arc::new(AtomicU64::new(now_ms()));
 
-	let listener = TcpListener::bind(format!("127.0.0.1:{PORT}")).unwrap_or_else(|e| {
-		eprintln!("Failed to bind to port {PORT}: {e}");
-		std::process::exit(1);
-	});
+	let (listener, port) = {
+		let mut last_err = None;
+		let mut found = None;
+		for p in PORT_BASE..PORT_BASE + PORT_RETRIES {
+			match TcpListener::bind(format!("127.0.0.1:{p}")) {
+				Ok(l) => {
+					found = Some((l, p));
+					break;
+				}
+				Err(e) => last_err = Some(e),
+			}
+		}
+		found.unwrap_or_else(|| {
+			eprintln!("Failed to bind to ports {PORT_BASE}..{}: {}", PORT_BASE + PORT_RETRIES, last_err.unwrap());
+			std::process::exit(1);
+		})
+	};
 
-	eprintln!("Excalidraw ready: http://localhost:{PORT}");
+	eprintln!("Excalidraw ready: http://localhost:{port}");
 	eprintln!("Editing: {}", file_path.display());
 	eprintln!("Alt+W to save. Ctrl+C to stop.");
 
-	let url = format!("http://localhost:{PORT}");
+	let url = format!("http://localhost:{port}");
 	let browser_cmd = cli.browser.clone();
 	std::thread::spawn(move || {
 		std::thread::sleep(std::time::Duration::from_millis(500));
