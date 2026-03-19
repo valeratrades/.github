@@ -76,7 +76,7 @@ fn main() -> ExitCode {
 				});
 			}
 		}
-		let empty = r#"{
+		let empty = r##"{
   "type": "excalidraw",
   "version": 2,
   "source": "ex-new",
@@ -87,7 +87,7 @@ fn main() -> ExitCode {
     "viewBackgroundColor": "#ffffff"
   },
   "files": {}
-}"#;
+}"##;
 		fs::write(file_path, empty).unwrap_or_else(|e| {
 			eprintln!("Failed to create {}: {e}", file_path.display());
 			std::process::exit(1);
