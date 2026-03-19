@@ -24,3 +24,6 @@ But releasing software is also just code, which you can write in your primary la
 Summing the build and CI story up:
 
 Build system is self-contained, reproducible and takes on the task of downloading all external dependencies. Irrespective of size of the project, it contains O(1) different entry points. One of those entry points is triggered by the not rocket science rule CI infra to run the set of canonical checks. There’s an explicit support for free-form automation, which is implemented in the same language as the bulk of the project.
+
+# do
+basically, all of this is solved if you just properly make use of `flake.nix`
