@@ -55,7 +55,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: "valeratrades/.github"
+          repository: "valeratrades/v_flakes"
           path: my_gh_stuff
           sparse-checkout: |
             github/workflows
