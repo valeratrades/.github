@@ -13,6 +13,7 @@
 - XXX: like NB but strictly negative
 - REF: link to reference or its summarized version in text
 - LOOP: similar to SAFETY, _every_ endless loop must have an explanation for its necessity
+    also is used to point out artificially bounded loops. Like when an infinite loop is replaced with "fuelled" `for`.
 - REF: during development or post-factum, simple way to mark a link with additional information
 - DUP | DUPLICATION: similar to SAFETY and LOOP: explains why duplication can't/shouldn't be abstracted
 - DEP | DEPENDS | RELIES: list things that must be true for the logical block to function as expected
