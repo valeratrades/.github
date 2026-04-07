@@ -99,3 +99,7 @@ Diagnostic codes only make sense on typed variants where the code communicates s
 
 ## Environment
 `Backtrace::capture()` returns a disabled backtrace unless `RUST_BACKTRACE=1` (or `RUST_LIB_BACKTRACE=1`) is set at runtime.
+
+
+## Other
+- Always use a named `backtrace: Backtrace` field (not a tuple position like `MyError(Backtrace)`) — `#[new(value = "...")]` from `derive_new` only works on named fields.
