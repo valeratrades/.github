@@ -59,6 +59,9 @@ jobs:
           path: my_gh_stuff
           sparse-checkout: |
             github/workflows
+            Cargo.toml
+            src
+            build.rs
           sparse-checkout-cone-mode: false
       
       - uses: dtolnay/rust-toolchain@master
