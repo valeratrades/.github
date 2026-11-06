@@ -11,9 +11,8 @@
 	utils::init_subscriber(log_path);
 	```
 - `color-eyre`: `color_eyre::install()?;` somewhere + `RUST_BACKTRACE=1 RUST_LIB_BACKTRACE=0` flags, which make it add backtrace on panic but not on error
-	you had a problem with dumb suggestions from it, which is solvable in by configuring cmp, but I haven't yet gotten around to it, will ping when I do.
 
-- `#[instrument]`: absolutely love it, enough to make [this abomination](<https://github.com/valeratrades/rust_codestyle>) to check for missing instruments on functions (buggy, if you start using it, feel free to open issues).
+- `#[instrument]`: absolutely love it, enough to make [this abomination](<https://github.com/valeratrades/codestyle>) to check for missing instruments on functions (buggy, if you start using it, feel free to open issues).
 
 - manual span creation: I found that trying to improve what `#[instrument]` provides by for example delaying filling some of the fields until later in the function to make it more precise, or manually creating spans for say async blocks that you can't automatically derive `#[instrument]` for, reduces iteration speed, so I seldom do it. Plus from readability standpoint, mixing together main logic with adjusting the span is not great.
 
