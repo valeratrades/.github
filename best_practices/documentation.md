@@ -5,6 +5,8 @@
 , and explicitly say that everything else in the docs/ folder is a set of unorganized topical guides.
 
 ### marks on comments
+all are written without a space and over a colon. So `//TODO!!!: shave a yak`, not `// TODO!!! shave a yak`
+
 - NB | NOTE: important
 - HACK
 - BUG
@@ -12,9 +14,6 @@
 - SAFETY
 - XXX: like NB but strictly negative
 - REF: link to reference or its summarized version in text
-- LOOP: similar to SAFETY, _every_ endless loop must have an explanation for its necessity
-    also is used to point out artificially bounded loops. Like when an infinite loop is replaced with "fuelled" `for`.
-- REF: during development or post-factum, simple way to mark a link with additional information
 - DUP | DUPLICATION: similar to SAFETY and LOOP: explains why duplication can't/shouldn't be abstracted
 - DEP | DEPENDS | RELIES: list things that must be true for the logical block to function as expected
 - BOTTLENECK: Can be placed on the section with the most expensive operation. In many cases can explain entire structure of a function on its own.
@@ -22,18 +21,15 @@
 #### temporary
 When developing it's nice to be able to annotate approximate desired map of the next steps
 As such, have 
+- TODO[!]*: todo, number of [!] signs for urgency
 - DO | \-: pseudo-code, mapping out steps needing to be done, similar to how `sorry` is used in `lean`, but obviously more urgent. Useful for grepping to find what I left at when coming back to a codebase.
+  > difference from TODO is we know exactly what needs to happen here. We write these as if we expect them to compile.
 - dbg | DBG: something temporary that is introduced for testing purposes and is meant to be removed before committing
 - TEST: similar to DBG, marks places where I'm trying out a new thing. Should be removed after the result of the experiment is apparent.
-- Q | ?: question to be resolved later
-- TODO[!]*: todo, number of [!] signs for urgency
+- Q: question to be resolved later
 - MOVE: a special case of TODO, convenient for mapping out architecture changes. Simply says where a thing should be moved to eventually.
 - DEPRECATE: a note to self to get around to deprecating something. Not to be used when native methods for marking something for deprecation are available (like `#[deprecated]` in rust)
-- OUTDATED: could mark an old doc comment with it. Or rather anything outside of the main control flow, validity of which is not checked automatically, and which I notice is not fresh.
 - WAIT: some upstream is broken, - all we are left to do with is wait until they fix it. Could specify `($date)` to re-check it at if you fell like
-- INVARIANT: `tracey`-like way of marking some part of the infrastructure to mention some architectural invariant.
-    Eg: "// INVARIANT: should be as performant as calling `size set` and `protocols set` on an existing protocol"
-
 
 ## inline comments
 match on size of the thing you want to comment on:

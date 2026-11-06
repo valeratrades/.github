@@ -1,4 +1,4 @@
-when developing anything non-trivial, the cycle is:
+for giant changes, the cycle is:
 1. draw stuff with excalidraw
 1. document boundaries in ARCHITECTURE.md
     // or docs submodule that your change is related to

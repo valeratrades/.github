@@ -12,7 +12,7 @@ struct Klines {
 	tf: Timeframe,
 }
 ```
-Because that would be a minor code duplication. And the standard to mirror the parent is not adapted universally throughout the languages, so it's (? is it?) fine for me to break it.
+Because that would be a minor code duplication. And the standard to mirror the parent is not adapted universally throughout the languages (right?), so it's fine for me to break it.
 
 ## Settings
 "config" refers to the written specifications that _init_ the project's "settings" or a part of them
